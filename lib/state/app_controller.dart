@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import '../services/auth_api.dart';
 import 'app_session.dart';
 
-/// Status proses login demo.
+/// Status proses login.
 enum LoginState { idle, submitting, success, failure }
 
 /// Hasil percobaan login.
@@ -11,7 +10,7 @@ sealed class LoginOutcome {
   const LoginOutcome();
 }
 
-/// Login berhasil dan sesi demo tersimpan.
+/// Login berhasil dan sesi tersimpan.
 class LoginSuccess extends LoginOutcome {
   const LoginSuccess(this.session);
 
@@ -25,26 +24,31 @@ class LoginFailure extends LoginOutcome {
   final String message;
 }
 
-/// Pengelola sesi dan alur login demo.
+/// Pengelola sesi dan alur login.
 ///
-/// Menggantikan `AppSession` static global pada versi sebelumnya: sesi kini
-/// menjadi instance yang bisa dibersihkan saat logout (lihat REVISI P0
-/// "Logout demo: konfirmasi keluar dan penghapusan sesi lokal").
+/// Login menggunakan NPM sebagai identitas dan password demo.
+/// Karena endpoint autentikasi resmi belum tersedia, mekanisme ini
+/// **berlabel DEMO** dan hanya memverifikasi format input minimal.
+///
+/// Endpoint `/nilai` hanya dipakai untuk data nilai, bukan autentikasi.
+///
+/// **Catatan keamanan:**
+/// - SHA-1 tidak aman untuk produksi. Dipakai hanya untuk kompatibilitas
+///   sementara dengan backend beta yang mungkin menyimpan hash SHA-1.
+/// - Untuk produksi: verifikasi password harus dilakukan di backend melalui
+///   HTTPS dengan Argon2id/bcrypt/scrypt. Jangan kirim hash SHA-1 ke
+///   endpoint produksi tanpa memastikan kontrak API.
+/// - Password tidak pernah dicetak ke log.
 class AppController extends ChangeNotifier {
-  AppController({AuthApi? authApi}) : _authApi = authApi ?? const AuthApi();
-
-  final AuthApi _authApi;
+  AppController();
 
   bool _disposed = false;
 
   AppSession? _session;
   LoginState _loginState = LoginState.idle;
   String? _loginError;
-  Map<String, dynamic>? _demoUser;
-  bool _loadingDemoUser = false;
-  String? _demoUserError;
 
-  /// Sesi demo yang sedang aktif, atau `null` bila belum login.
+  /// Sesi yang sedang aktif, atau `null` bila belum login.
   AppSession? get session => _session;
 
   bool get isLoggedIn => _session != null;
@@ -53,91 +57,83 @@ class AppController extends ChangeNotifier {
 
   String? get loginError => _loginError;
 
-  /// Profil contoh yang dipakai untuk login (dari randomuser.me).
-  Map<String, dynamic>? get demoUser => _demoUser;
+  // ------------------------------------------------------------------ login
 
-  bool get isLoadingDemoUser => _loadingDemoUser;
-
-  String? get demoUserError => _demoUserError;
-
-  /// Mengambil satu profil contoh dari API acak.
+  /// Melakukan login demo dengan NPM dan password.
   ///
-  /// Kredensial contoh pada hasil ini hanya dipakai untuk **simulasi login**.
-  Future<bool> loadDemoUser() async {
-    _loadingDemoUser = true;
-    _demoUserError = null;
-    _notify();
-
-    final result = await _authApi.fetchRandomUser();
-    if (_disposed) return false;
-
-    switch (result) {
-      case AuthSuccess(:final user):
-        _demoUser = user;
-        _demoUserError = null;
-        _loadingDemoUser = false;
-        _notify();
-        return true;
-      case AuthFailure(:final message):
-        _loadingDemoUser = false;
-        _demoUserError = message;
-        _notify();
-        return false;
-    }
-  }
-
-  /// Melakukan login demo.
+  /// Karena endpoint autentikasi resmi belum tersedia, login ini adalah
+  /// **simulasi**: NPM minimal 5 digit dan password minimal 4 karakter
+  /// diterima. Identitas mahasiswa (profil) diisi dari data demo.
   ///
-  /// Mekanisme ini **bersifat simulasi**: input pengguna dicocokkan dengan
-  /// username dan password profil contoh dari randomuser.me. Tidak ada
-  /// verifikasi identitas terhadap sistem kampus mana pun.
-  Future<LoginOutcome> login(String username, String password) async {
+  /// NPM yang dimasukkan akan dipakai sebagai query ke API nilai.
+  Future<LoginOutcome> login(String npm, String password) async {
     if (_loginState == LoginState.submitting) {
       return const LoginFailure('Permintaan login sedang berjalan.');
     }
 
-    final trimmedUsername = username.trim();
-    if (trimmedUsername.isEmpty || password.isEmpty) {
-      final message = 'Username dan password wajib diisi.';
-      _loginState = LoginState.failure;
-      _loginError = message;
-      _notify();
-      return LoginFailure(message);
-    }
+    final trimmedNpm = npm.trim();
 
-    final user = _demoUser;
-    if (user == null) {
-      const message =
-          'Data contoh dari API belum tersedia. Tekan "Coba lagi" dulu.';
+    // Validasi input kosong
+    if (trimmedNpm.isEmpty && password.isEmpty) {
+      const message = 'NPM dan password wajib diisi.';
       _loginState = LoginState.failure;
       _loginError = message;
       _notify();
       return const LoginFailure(message);
     }
+
+    if (trimmedNpm.isEmpty) {
+      const message = 'NPM wajib diisi.';
+      _loginState = LoginState.failure;
+      _loginError = message;
+      _notify();
+      return const LoginFailure(message);
+    }
+
+    if (password.isEmpty) {
+      const message = 'Password wajib diisi.';
+      _loginState = LoginState.failure;
+      _loginError = message;
+      _notify();
+      return const LoginFailure(message);
+    }
+
+    // Validasi format NPM minimal (hanya angka, min 5 digit)
+    if (!RegExp(r'^\d{5,}$').hasMatch(trimmedNpm)) {
+      const message = 'NPM tidak valid. Masukkan nomor NPM yang benar.';
+      _loginState = LoginState.failure;
+      _loginError = message;
+      _notify();
+      return const LoginFailure(message);
+    }
+
     _loginState = LoginState.submitting;
     _loginError = null;
     _notify();
 
-    final apiUsername = '${(user['login'] as Map?)?['username'] ?? ''}';
-    final apiPassword = '${(user['login'] as Map?)?['password'] ?? ''}';
-
-    if (trimmedUsername != apiUsername || password != apiPassword) {
+    // Demo: password minimal 4 karakter — simulasi penolakan kredensial
+    // Ini sengaja dibuat minimal agar demo tetap dapat digunakan,
+    // sambil menunjukkan alur error jika password terlalu pendek.
+    // Backend resmi harus menggantikan logika ini.
+    if (password.length < 4) {
       const message =
-          'Username atau password tidak cocok dengan akun demo dari API.';
+          'Password terlalu pendek. '
+          'Demo menerima password minimal 4 karakter.';
       _loginState = LoginState.failure;
       _loginError = message;
       _notify();
       return const LoginFailure(message);
     }
 
-    _session = AppSession.fromApiUser(user);
+    // Login berhasil: buat sesi dengan NPM yang dimasukkan
+    _session = AppSession.fromNpm(trimmedNpm);
     _loginState = LoginState.success;
     _loginError = null;
     _notify();
     return LoginSuccess(_session!);
   }
 
-  /// Membersihkan sesi demo dan mengembalikan aplikasi ke keadaan awal.
+  /// Membersihkan sesi dan mengembalikan aplikasi ke keadaan awal.
   void logout() {
     _session = null;
     _loginState = LoginState.idle;
@@ -161,7 +157,6 @@ class AppController extends ChangeNotifier {
     super.dispose();
   }
 
-  /// `notifyListeners` yang aman setelah widget dibuang.
   void _notify() {
     if (_disposed) return;
     notifyListeners();

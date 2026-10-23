@@ -61,8 +61,12 @@ class DemoRepository {
 
   /// Mengambil nilai dari API mockapi.io berdasarkan NPM mahasiswa yang login.
   ///
-  /// Jika [npm] kosong atau API gagal, fallback ke data demo lokal.
-  /// Tidak pernah dipakai untuk autentikasi.
+  /// Jika [npm] kosong atau API tidak dapat dihubungi (network error),
+  /// fallback ke data demo lokal hanya untuk error jaringan.
+  ///
+  /// Jika NPM tidak ditemukan di API (list kosong setelah filter client-side),
+  /// kembalikan list kosong — pemanggil menampilkan empty state yang jujur.
+  /// Tidak ada fallback diam-diam ke data demo untuk NPM yang tidak cocok.
   Future<List<Grade>> fetchApiGrades(String npm) async {
     if (simulateFailure) {
       throw Exception(
@@ -70,25 +74,28 @@ class DemoRepository {
       );
     }
 
+    if (npm.trim().isEmpty) {
+      // NPM belum tersedia, kembalikan data lokal sebagai tampilan default
+      return DemoData.grades;
+    }
+
     final result = await _nilaiApi.fetchGradesByNpm(npm);
 
     switch (result) {
       case NilaiSuccess(:final grades):
-        if (grades.isEmpty) {
-          // NPM tidak ditemukan di API — gunakan data demo lokal
-          return DemoData.grades;
-        }
+        // Jika NPM tidak ditemukan di API, kembalikan list kosong (empty state)
+        // Jangan fallback ke DemoData.grades karena itu akan menyesatkan
         return grades;
       case NilaiFailure():
-        // Gagal terhubung ke API — gunakan data demo lokal sebagai fallback
+        // Gagal jaringan: fallback ke data demo agar aplikasi tetap bisa dipakai
         return DemoData.grades;
     }
   }
 
-  /// Mengambil data DHS (Daftar Hasil Studi) dari API mockapi.io
-  /// berdasarkan NPM mahasiswa yang login.
+  /// Mengambil data DHS dari API mockapi.io berdasarkan NPM.
   ///
-  /// Jika API gagal atau NPM tidak ditemukan, fallback ke data demo lokal.
+  /// Jika NPM tidak ditemukan di API (list kosong), kembalikan list kosong.
+  /// Jika gagal jaringan, fallback ke data demo lokal.
   Future<List<DhsGrade>> fetchDhsGrades(String npm) async {
     if (simulateFailure) {
       throw Exception(
@@ -96,15 +103,18 @@ class DemoRepository {
       );
     }
 
+    if (npm.trim().isEmpty) {
+      return DemoData.dhsGrades;
+    }
+
     final result = await _nilaiApi.fetchGradesByNpm(npm);
 
     switch (result) {
       case NilaiSuccess(:final grades):
         if (grades.isEmpty) {
-          return DemoData.dhsGrades;
+          // NPM tidak ditemukan di API — kembalikan kosong, bukan data demo
+          return const [];
         }
-        // Konversi Grade (dari API) menjadi DhsGrade
-        // Nama MK tidak tersedia di API, gunakan kode sebagai nama sementara
         return grades
             .map(
               (g) => DhsGrade(
@@ -112,7 +122,7 @@ class DemoRepository {
                 courseName: g.courseName.isNotEmpty
                     ? g.courseName
                     : g.courseCode,
-                credits: 3, // SKS tidak tersedia di endpoint nilai; pakai default
+                credits: 3,
                 na: g.totalScore,
                 hm: g.letterGrade,
                 am: g.angkaMutu ?? _amFromHm(g.letterGrade),
@@ -132,7 +142,7 @@ class DemoRepository {
   Future<List<Announcement>> fetchAnnouncements() =>
       _respond(DemoData.buildAnnouncements(_now));
 
-  /// Konversi huruf mutu ke angka mutu standar Indonesia bila am tidak tersedia.
+  /// Konversi huruf mutu ke angka mutu standar Indonesia.
   static double _amFromHm(String hm) {
     switch (hm.toUpperCase().trim()) {
       case 'A':

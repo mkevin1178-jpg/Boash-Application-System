@@ -182,12 +182,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _identityCard(AppSession? session) {
     final rows = <(IconData, String, String)>[
-      (Icons.badge_outlined, 'NIM', session?.nim ?? DemoData.nim),
-      (
-        Icons.person_outline,
-        'Username demo',
-        session?.username.isNotEmpty == true ? session!.username : '-',
-      ),
+      (Icons.badge_outlined, 'NIM / NPM', session?.nim ?? DemoData.nim),
       (
         Icons.email_outlined,
         'Email',

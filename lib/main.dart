@@ -70,8 +70,7 @@ class _AppRootState extends State<AppRoot> {
   }
 
   Future<void> _bootstrap() async {
-    // Ambil akun contoh dari API acak sekaligus menampilkan splash.
-    await widget.controller.loadDemoUser();
+    // Tampilkan splash sebentar sebelum masuk ke halaman login.
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
     setState(() => _ready = true);

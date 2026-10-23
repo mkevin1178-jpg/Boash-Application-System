@@ -8,7 +8,7 @@ import 'support/test_harness.dart';
 void main() {
   setUpAll(disableRuntimeFontFetching);
 
-  testWidgets('hub Akademik menampilkan lima fitur akademik', (tester) async {
+  testWidgets('hub Akademik menampilkan tujuh fitur akademik', (tester) async {
     final controller = await createLoggedInController();
     addTearDown(controller.dispose);
 
@@ -24,6 +24,8 @@ void main() {
     expect(find.text('Nilai'), findsOneWidget);
     expect(find.text('Presensi'), findsOneWidget);
     expect(find.text('KTM'), findsOneWidget);
+    expect(find.text('KRS'), findsOneWidget);
+    expect(find.text('DHS'), findsOneWidget);
   });
 
   testWidgets('daftar tugas menampilkan tugas contoh dan dapat difilter', (

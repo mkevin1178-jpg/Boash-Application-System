@@ -6,7 +6,6 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/app_snackbar.dart';
 import '../../widgets/demo_note.dart';
 
 /// Halaman pengaturan aplikasi.
@@ -78,29 +77,10 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 _tile(
                   icon: Icons.manage_accounts_outlined,
-                  title: 'Akun contoh',
-                  subtitle: controller.session?.username.isNotEmpty == true
-                      ? 'Akun aktif: ${controller.session!.username}'
-                      : 'Belum ada akun contoh aktif',
-                ),
-                const Divider(height: 1, color: AppColors.divider),
-                _tile(
-                  icon: Icons.refresh,
-                  title: 'Ganti akun contoh',
-                  subtitle: 'Ambil profil baru dari API acak',
-                  onTap: () async {
-                    final result = await controller.loadDemoUser();
-                    if (!context.mounted) return;
-                    showAppSnackBar(
-                      context,
-                      result
-                          ? 'Akun contoh berhasil diperbarui.'
-                          : 'Gagal mengambil akun contoh dari API.',
-                      variant: result
-                          ? AppSnackBarVariant.success
-                          : AppSnackBarVariant.error,
-                    );
-                  },
+                  title: 'Akun aktif',
+                  subtitle: controller.session?.npm.isNotEmpty == true
+                      ? 'NPM: ${controller.session!.npm}'
+                      : 'Belum ada sesi aktif',
                 ),
               ],
             ),

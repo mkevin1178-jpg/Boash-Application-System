@@ -36,6 +36,9 @@ class NilaiFailure extends NilaiResult {
 /// - `na_uas`, `na_uts`, `na_quis`, `na_tugas`, `na_hadir`
 /// - `na` (nilai akhir), `hm` (huruf mutu), `am` (angka mutu / bobot nilai)
 /// - `mutu` (am × SKS), `thn_akademik`, `semester`, `nip`
+///
+/// **Penting:** server tidak selalu memfilter hasil dengan benar berdasarkan
+/// query `npm`. Filter client-side wajib diterapkan setelah respons diterima.
 class NilaiApi {
   const NilaiApi({
     this.timeout = const Duration(seconds: 10),
@@ -52,14 +55,20 @@ class NilaiApi {
 
   /// Mengambil daftar nilai berdasarkan [npm] mahasiswa yang sedang login.
   ///
-  /// NPM dipakai sebagai query parameter `npm`; tidak pernah dipakai
-  /// sebagai password atau kata sandi.
+  /// Filter client-side diterapkan: hanya record dengan field `npm` yang
+  /// sama persis dengan [npm] yang diterima. Ini penting karena server
+  /// mockapi dapat mengembalikan record NPM lain meski query berbeda.
+  ///
+  /// Mengembalikan [NilaiSuccess] dengan list kosong jika NPM tidak ditemukan
+  /// (bukan fallback — pemanggil bertanggung jawab menampilkan empty state).
   Future<NilaiResult> fetchGradesByNpm(String npm) async {
-    if (npm.trim().isEmpty) {
+    final trimmedNpm = npm.trim();
+    if (trimmedNpm.isEmpty) {
       return const NilaiFailure('NPM tidak tersedia. Nilai tidak dapat dimuat.');
     }
 
-    final uri = Uri.parse('$_baseUrl?npm=${Uri.encodeQueryComponent(npm.trim())}');
+    final uri = Uri.parse(
+        '$_baseUrl?npm=${Uri.encodeQueryComponent(trimmedNpm)}');
     http.Client? activeClient;
 
     try {
@@ -88,6 +97,9 @@ class NilaiApi {
       final grades = <Grade>[];
       for (final item in items) {
         if (item is! Map<String, dynamic>) continue;
+        // Filter client-side: hanya terima record dengan npm yang cocok
+        final recordNpm = '${item['npm'] ?? ''}'.trim();
+        if (recordNpm != trimmedNpm) continue;
         final grade = _parseGrade(item);
         if (grade != null) grades.add(grade);
       }
@@ -108,21 +120,10 @@ class NilaiApi {
   }
 
   /// Memetakan satu item JSON ke [Grade].
-  ///
-  /// Field yang dipakai (sesuai skema yang diverifikasi):
-  /// - `kd_matkul` → courseCode
-  /// - `na`  → totalScore (nilai akhir)
-  /// - `na_uts` → midTermScore
-  /// - `na_uas` → finalScore
-  /// - `na_tugas` → taskScore
-  /// - `hm`  → letterGrade (huruf mutu)
-  /// - `am`  → angkaMutu
-  /// - `thn_akademik` dan `semester` untuk info tambahan
   Grade? _parseGrade(Map<String, dynamic> json) {
     final kode = '${json['kd_matkul'] ?? ''}'.trim();
     if (kode.isEmpty) return null;
 
-    // na_* adalah nilai per komponen sudah diperhitungkan bobot
     final naUts = _toDouble(json['na_uts']);
     final naUas = _toDouble(json['na_uas']);
     final naTugas = _toDouble(json['na_tugas']);
@@ -134,7 +135,7 @@ class NilaiApi {
 
     return Grade.fromApi(
       courseCode: kode,
-      courseName: kode, // nama MK tidak tersedia di endpoint; gunakan kode
+      courseName: kode,
       taskScore: naTugas,
       midTermScore: naUts,
       finalScore: naUas,

@@ -1,4 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../../data/demo_data.dart';
 import '../../state/app_controller.dart';
@@ -13,16 +18,267 @@ import '../../widgets/profile_avatar.dart';
 
 /// Halaman Kartu Tanda Mahasiswa (KTM) - versi demo.
 ///
-/// Identitas pada kartu adalah data contoh. Barcode di bawah bersifat
-/// **dekoratif** dan tidak dapat dipindai untuk verifikasi.
-class KtmScreen extends StatelessWidget {
+/// Identitas pada kartu diambil dari sesi login (NPM, nama, prodi).
+/// Barcode di bawah bersifat **dekoratif** dan tidak dapat dipindai.
+///
+/// Tombol "Simpan KTM" menghasilkan file PDF yang benar-benar dapat dibuka
+/// menggunakan package `pdf` + `printing`.
+class KtmScreen extends StatefulWidget {
   const KtmScreen({super.key, required this.controller});
 
   final AppController controller;
 
   @override
+  State<KtmScreen> createState() => _KtmScreenState();
+}
+
+class _KtmScreenState extends State<KtmScreen> {
+  bool _exporting = false;
+
+  Future<void> _exportPdf() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+
+    try {
+      final session = widget.controller.session;
+      final pdfBytes = await _buildPdf(session);
+
+      // Printing.layoutPdf bekerja di web (preview browser) dan Android/iOS
+      // (share sheet / print dialog). Tidak memerlukan izin penyimpanan manual.
+      await Printing.layoutPdf(
+        onLayout: (_) async => pdfBytes,
+        name: 'KTM_${session?.nim ?? 'demo'}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          'Gagal membuat PDF KTM: $e',
+          variant: AppSnackBarVariant.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  /// Membangun dokumen PDF KTM menggunakan package `pdf`.
+  Future<Uint8List> _buildPdf(AppSession? session) async {
+    final doc = pw.Document();
+
+    final nim = session?.nim ?? DemoData.nim;
+    final fullName = session?.fullName ?? 'Mahasiswa Demo';
+    final prodi = session?.programStudi ?? DemoData.programStudi;
+    final faculty = session?.faculty ?? DemoData.faculty;
+    final semester = session?.semester ?? DemoData.semester;
+    final academicYear = session?.academicYear ?? DemoData.academicYear;
+    final validUntil = session?.validUntil ?? DemoData.validUntil;
+
+    // Warna brand
+    const brand = PdfColor.fromInt(0xFF0B4FCB);
+    const brandLight = PdfColor.fromInt(0xFFE8EFFF);
+    const textPrimary = PdfColor.fromInt(0xFF17233F);
+    const textSecondary = PdfColor.fromInt(0xFF5F6B8A);
+    const white = PdfColor.fromInt(0xFFFFFFFF);
+    const warningBg = PdfColor.fromInt(0xFFFEF3C7);
+    const warning = PdfColor.fromInt(0xFFB45309);
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4.copyWith(
+          marginLeft: 40,
+          marginRight: 40,
+          marginTop: 40,
+          marginBottom: 40,
+        ),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            // ── Judul ──────────────────────────────────────────────────
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: brand,
+                borderRadius: pw.BorderRadius.circular(12),
+              ),
+              child: pw.Row(
+                children: [
+                  pw.Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const pw.BoxDecoration(
+                      color: white,
+                      shape: pw.BoxShape.circle,
+                    ),
+                    child: pw.Center(
+                      child: pw.Text(
+                        'BU',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: brand,
+                        ),
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(width: 12),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'UNIVERSITAS NUSANTARA',
+                          style: pw.TextStyle(
+                            fontSize: 16,
+                            fontWeight: pw.FontWeight.bold,
+                            color: white,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          'KARTU TANDA MAHASISWA — DEMO',
+                          style: pw.TextStyle(
+                            fontSize: 8,
+                            letterSpacing: 2,
+                            color: PdfColor.fromInt(0xFFCFE3FF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Badge DEMO
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: pw.BoxDecoration(
+                      color: warningBg,
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.Text(
+                      'DEMO',
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                        color: warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 24),
+
+            // ── Data mahasiswa ─────────────────────────────────────────
+            pw.Container(
+              padding: const pw.EdgeInsets.all(20),
+              decoration: pw.BoxDecoration(
+                color: brandLight,
+                borderRadius: pw.BorderRadius.circular(12),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'DATA MAHASISWA',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: brand,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  _pdfRow('NIM / NPM', nim, textPrimary, textSecondary),
+                  _pdfRow('Nama Lengkap', fullName, textPrimary, textSecondary),
+                  _pdfRow('Program Studi', prodi, textPrimary, textSecondary),
+                  _pdfRow('Fakultas', faculty, textPrimary, textSecondary),
+                  _pdfRow('Semester', semester, textPrimary, textSecondary),
+                  _pdfRow(
+                      'Tahun Akademik', academicYear, textPrimary, textSecondary),
+                  _pdfRow('Berlaku s/d', validUntil, textPrimary, textSecondary),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 24),
+
+            // ── Catatan DEMO ──────────────────────────────────────────
+            pw.Container(
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color: warningBg,
+                borderRadius: pw.BorderRadius.circular(8),
+                border: pw.Border.all(color: warning, width: 0.5),
+              ),
+              child: pw.Text(
+                'Dokumen ini adalah KTM simulasi untuk prototipe PBL. '
+                'Bukan dokumen resmi. Tidak untuk keperluan verifikasi identitas.',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  color: warning,
+                  lineSpacing: 3,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 16),
+
+            // ── Footer ─────────────────────────────────────────────────
+            pw.Text(
+              'Dicetak oleh: Boash Student App v2.0 — Data demo, bukan dokumen kampus resmi.',
+              style: pw.TextStyle(
+                fontSize: 8,
+                color: textSecondary,
+                fontStyle: pw.FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return Uint8List.fromList(await doc.save());
+  }
+
+  static pw.Widget _pdfRow(
+    String label,
+    String value,
+    PdfColor textPrimary,
+    PdfColor textSecondary,
+  ) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 6),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 120,
+            child: pw.Text(
+              label,
+              style: pw.TextStyle(fontSize: 10, color: textSecondary),
+            ),
+          ),
+          pw.Text(
+            ': ',
+            style: pw.TextStyle(fontSize: 10, color: textSecondary),
+          ),
+          pw.Expanded(
+            child: pw.Text(
+              value,
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: pw.FontWeight.bold,
+                color: textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final session = controller.session;
+    final session = widget.controller.session;
     final fullName = session?.fullName ?? 'Mahasiswa Demo';
     final initials = session?.initials ?? 'MD';
     final photoUrl = session?.photoUrl ?? '';
@@ -47,7 +303,8 @@ class KtmScreen extends StatelessWidget {
           const DemoNotice(
             text:
                 'KTM demo. Barcode bersifat dekoratif dan bukan alat '
-                'verifikasi. Tombol simpan dan bagikan hanya simulasi.',
+                'verifikasi. Tombol Simpan menghasilkan file PDF yang dapat '
+                'dibuka.',
           ),
           const SizedBox(height: AppSpacing.lg),
           _buildCard(
@@ -75,7 +332,7 @@ class KtmScreen extends StatelessWidget {
               children: [
                 _infoRow(
                   Icons.badge_outlined,
-                  'NIM',
+                  'NIM / NPM',
                   session?.nim ?? DemoData.nim,
                 ),
                 const Divider(height: 1, color: AppColors.divider),
@@ -110,22 +367,23 @@ class KtmScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           AppButton(
-            label: 'BAGIKAN KTM',
-            icon: Icons.share_outlined,
-            onPressed: () => showAppSnackBar(
-              context,
-              'Demo: membagikan KTM tidak tersedia pada versi ini.',
-            ),
+            label: _exporting ? 'MEMBUAT PDF...' : 'SIMPAN KTM (PDF)',
+            icon: _exporting ? null : Icons.download_outlined,
+            isLoading: _exporting,
+            onPressed: _exporting ? null : _exportPdf,
           ),
           const SizedBox(height: AppSpacing.md),
           AppButton(
-            label: 'SIMPAN KTM',
-            icon: Icons.download_outlined,
+            label: 'BAGIKAN KTM',
+            icon: Icons.share_outlined,
             variant: AppButtonVariant.secondary,
-            onPressed: () => showAppSnackBar(
-              context,
-              'Demo: KTM tidak disimpan ke galeri pada versi ini.',
-            ),
+            onPressed: _exporting
+                ? null
+                : () => showAppSnackBar(
+                      context,
+                      'Gunakan tombol Simpan KTM (PDF) terlebih dahulu, '
+                      'lalu bagikan file PDF dari perangkat Anda.',
+                    ),
           ),
         ],
       ),
@@ -138,7 +396,7 @@ class KtmScreen extends StatelessWidget {
     required String initials,
     required String photoUrl,
   }) {
-    final session = controller.session;
+    final session = widget.controller.session;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -212,7 +470,7 @@ class KtmScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _cardRow('NIM', session?.nim ?? DemoData.nim),
+                      _cardRow('NIM / NPM', session?.nim ?? DemoData.nim),
                       _cardRow('Nama', fullName),
                       _cardRow(
                         'Program Studi',

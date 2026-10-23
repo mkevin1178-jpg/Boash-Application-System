@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/demo_repository.dart';
 import '../../state/app_controller.dart';
@@ -6,16 +7,18 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_snackbar.dart';
-import '../../widgets/app_text_field.dart';
 
-/// Halaman login demo.
+/// Halaman login.
 ///
-/// Alur: validasi input -> pencocokan dengan akun contoh dari API acak ->
-/// simpan sesi demo. Setelah sesi tersimpan, [AppRoot] otomatis menampilkan
-/// dashboard sehingga halaman ini tidak perlu melakukan navigasi manual.
+/// Desain:
+/// - Atas: latar gradien biru dengan ikon dekoratif dan nama aplikasi.
+/// - Bawah: panel putih dengan sudut atas membulat besar, berisi form login.
 ///
-/// **Login ini adalah simulasi.** API randomuser.me hanya menyediakan profil
-/// contoh; tidak ada verifikasi identitas terhadap sistem kampus.
+/// Login menggunakan NPM dan password.
+///
+/// **Status autentikasi:** endpoint autentikasi resmi belum tersedia.
+/// Login ini adalah **DEMO**: NPM minimal 5 digit dan password minimal
+/// 4 karakter diterima. Tidak ada verifikasi ke sistem kampus.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
@@ -31,241 +34,457 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
+  final _npmController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _npmFocus = FocusNode();
+  final _passwordFocus = FocusNode();
 
-  String? _usernameError;
+  String? _npmError;
   String? _passwordError;
+  bool _passwordVisible = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _npmController.dispose();
     _passwordController.dispose();
+    _npmFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final username = _usernameController.text.trim();
+    final npm = _npmController.text.trim();
     final password = _passwordController.text;
 
+    // Validasi sisi klien
+    String? npmErr;
+    String? pwErr;
+
+    if (npm.isEmpty) {
+      npmErr = 'NPM wajib diisi';
+    } else if (!RegExp(r'^\d{5,}$').hasMatch(npm)) {
+      npmErr = 'NPM tidak valid (minimal 5 digit angka)';
+    }
+
+    if (password.isEmpty) {
+      pwErr = 'Password wajib diisi';
+    }
+
     setState(() {
-      _usernameError = username.isEmpty ? 'Username wajib diisi' : null;
-      _passwordError = password.isEmpty ? 'Password wajib diisi' : null;
+      _npmError = npmErr;
+      _passwordError = pwErr;
     });
 
-    if (_usernameError != null || _passwordError != null) return;
+    if (npmErr != null || pwErr != null) return;
 
-    final outcome = await widget.controller.login(username, password);
+    final outcome = await widget.controller.login(npm, password);
     if (!mounted) return;
 
     switch (outcome) {
       case LoginSuccess():
-        // Sesi demo tersimpan; AppRoot yang memindahkan ke dashboard.
+        // AppRoot mendeteksi isLoggedIn dan menampilkan dashboard.
         break;
-      case LoginFailure():
-        showAppSnackBar(
-          context,
-          widget.controller.loginError ?? 'Login gagal. Coba lagi.',
-          variant: AppSnackBarVariant.error,
-        );
+      case LoginFailure(:final message):
+        showAppSnackBar(context, message, variant: AppSnackBarVariant.error);
     }
   }
 
-  void _showSignUpNotice() {
-    showAppSnackBar(
-      context,
-      'Pendaftaran akun tidak tersedia pada versi demo.',
-    );
+  void _onNpmChanged(String _) {
+    widget.controller.clearLoginError();
+    if (_npmError != null) setState(() => _npmError = null);
+  }
+
+  void _onPasswordChanged(String _) {
+    widget.controller.clearLoginError();
+    if (_passwordError != null) setState(() => _passwordError = null);
+  }
+
+  void _fillDemo() {
+    _npmController.text = '12523030';
+    _passwordController.text = 'demo1234';
+    setState(() {
+      _npmError = null;
+      _passwordError = null;
+    });
+    widget.controller.clearLoginError();
   }
 
   @override
   Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final screenHeight = mq.size.height;
+
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.bgGradient),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 28,
-              vertical: AppSpacing.xxl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: AppSpacing.lg),
-                const Icon(
-                  Icons.menu_book,
-                  size: 84,
-                  color: AppColors.onPrimary,
+      resizeToAvoidBottomInset: true,
+      body: Stack(
+        children: [
+          // Latar gradien biru — seluruh layar
+          Container(
+            decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+          ),
+
+          // Konten scrollable
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: screenHeight - mq.padding.top,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                const Text(
-                  'BOASH STUDENT APP',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 3,
-                    color: AppColors.onPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-                const Text(
-                  'Masuk ke akun Anda',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  'Gunakan akun contoh dari API acak di bawah untuk masuk.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: AppColors.onPrimarySoft,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _GlassField(
-                  child: AppTextField(
-                    controller: _usernameController,
-                    label: 'Username',
-                    hint: 'Masukkan username demo',
-                    icon: Icons.person_outline,
-                    errorText: _usernameError,
-                    textInputAction: TextInputAction.next,
-                    onChanged: (_) => widget.controller.clearLoginError(),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _GlassField(
-                  child: AppTextField(
-                    controller: _passwordController,
-                    label: 'Password',
-                    hint: 'Masukkan password demo',
-                    icon: Icons.lock_outline,
-                    obscureText: true,
-                    errorText: _passwordError,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submit(),
-                    onChanged: (_) => widget.controller.clearLoginError(),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                ListenableBuilder(
-                  listenable: widget.controller,
-                  builder: (context, _) {
-                    final submitting =
-                        widget.controller.loginState == LoginState.submitting;
-                    return AppButton(
-                      label: submitting ? 'MEMPROSES...' : 'MASUK',
-                      icon: submitting ? null : Icons.login,
-                      isLoading: submitting,
-                      onPressed: submitting ? null : _submit,
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSpacing.md),
-                const _DemoNotice(),
-                const SizedBox(height: AppSpacing.xl),
-                _DemoAccountCard(
-                  controller: widget.controller,
-                  onUseAccount: (username, password) {
-                    _usernameController.text = username;
-                    _passwordController.text = password;
-                    setState(() {
-                      _usernameError = null;
-                      _passwordError = null;
-                    });
-                  },
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Belum punya akun? ',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.onPrimarySoft,
-                      ),
+                    // ── Header dekoratif ──────────────────────────────────
+                    SizedBox(
+                      height: screenHeight * 0.30,
+                      child: const _HeaderDecor(),
                     ),
-                    GestureDetector(
-                      onTap: _showSignUpNotice,
-                      child: const Text(
-                        'Daftar',
-                        style: TextStyle(
-                          color: AppColors.onPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+
+                    // ── Panel putih sudut atas membulat ───────────────────
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(36),
+                          topRight: Radius.circular(36),
                         ),
+                      ),
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.xxl,
+                        AppSpacing.xxl,
+                        AppSpacing.xxl,
+                        AppSpacing.xxl + mq.viewInsets.bottom,
+                      ),
+                      child: _LoginForm(
+                        npmController: _npmController,
+                        passwordController: _passwordController,
+                        npmFocus: _npmFocus,
+                        passwordFocus: _passwordFocus,
+                        npmError: _npmError,
+                        passwordError: _passwordError,
+                        passwordVisible: _passwordVisible,
+                        onPasswordVisibilityToggle: () =>
+                            setState(() => _passwordVisible = !_passwordVisible),
+                        onNpmChanged: _onNpmChanged,
+                        onPasswordChanged: _onPasswordChanged,
+                        onSubmit: _submit,
+                        onFillDemo: _fillDemo,
+                        controller: widget.controller,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-/// Kolom input dengan gaya kaca di atas latar gradien.
-class _GlassField extends StatelessWidget {
-  const _GlassField({required this.child});
-
-  final Widget child;
+/// Bagian header dekoratif: ikon dan nama aplikasi.
+class _HeaderDecor extends StatelessWidget {
+  const _HeaderDecor();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.lg),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          inputDecorationTheme: const InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.transparent,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Ikon buku dalam lingkaran blur lembut
+          Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.40),
+                width: 1.5,
+              ),
             ),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorBorder: InputBorder.none,
-            focusedErrorBorder: InputBorder.none,
-            labelStyle: TextStyle(color: AppColors.onPrimarySoft),
-            hintStyle: TextStyle(color: AppColors.onPrimarySoft),
-            prefixIconColor: AppColors.onPrimarySoft,
-            suffixIconColor: AppColors.onPrimarySoft,
+            child: const Icon(
+              Icons.menu_book,
+              size: 44,
+              color: AppColors.onPrimary,
+            ),
           ),
-        ),
-        child: child,
+          const SizedBox(height: AppSpacing.lg),
+          const Text(
+            'BOASH STUDENT APP',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 3,
+              color: AppColors.onPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          const Text(
+            'Sistem Informasi Kampus',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              letterSpacing: 0.5,
+              color: AppColors.onPrimarySoft,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Penjelasan singkat bahwa login bersifat simulasi.
-class _DemoNotice extends StatelessWidget {
-  const _DemoNotice();
+/// Form login di dalam panel putih.
+class _LoginForm extends StatelessWidget {
+  const _LoginForm({
+    required this.npmController,
+    required this.passwordController,
+    required this.npmFocus,
+    required this.passwordFocus,
+    required this.npmError,
+    required this.passwordError,
+    required this.passwordVisible,
+    required this.onPasswordVisibilityToggle,
+    required this.onNpmChanged,
+    required this.onPasswordChanged,
+    required this.onSubmit,
+    required this.onFillDemo,
+    required this.controller,
+  });
+
+  final TextEditingController npmController;
+  final TextEditingController passwordController;
+  final FocusNode npmFocus;
+  final FocusNode passwordFocus;
+  final String? npmError;
+  final String? passwordError;
+  final bool passwordVisible;
+  final VoidCallback onPasswordVisibilityToggle;
+  final ValueChanged<String> onNpmChanged;
+  final ValueChanged<String> onPasswordChanged;
+  final VoidCallback onSubmit;
+  final VoidCallback onFillDemo;
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Masuk ke Akun Anda',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        const Text(
+          'Masukkan NPM dan password untuk melanjutkan.',
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.4,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // ── Field NPM ───────────────────────────────────────────────────
+        _RoundedField(
+          controller: npmController,
+          focusNode: npmFocus,
+          label: 'NPM',
+          hint: 'Nomor Pokok Mahasiswa',
+          icon: Icons.badge_outlined,
+          errorText: npmError,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          textInputAction: TextInputAction.next,
+          onChanged: onNpmChanged,
+          onSubmitted: (_) => passwordFocus.requestFocus(),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // ── Field Password ───────────────────────────────────────────────
+        _RoundedField(
+          controller: passwordController,
+          focusNode: passwordFocus,
+          label: 'Password',
+          hint: 'Password Anda',
+          icon: Icons.lock_outline,
+          errorText: passwordError,
+          obscureText: !passwordVisible,
+          textInputAction: TextInputAction.done,
+          onChanged: onPasswordChanged,
+          onSubmitted: (_) => onSubmit(),
+          suffixIcon: IconButton(
+            icon: Icon(
+              passwordVisible
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
+            onPressed: onPasswordVisibilityToggle,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // ── Tombol Masuk ────────────────────────────────────────────────
+        ListenableBuilder(
+          listenable: controller,
+          builder: (context, _) {
+            final submitting =
+                controller.loginState == LoginState.submitting;
+            return AppButton(
+              label: submitting ? 'MEMPROSES...' : 'MASUK',
+              icon: submitting ? null : Icons.login,
+              isLoading: submitting,
+              onPressed: submitting ? null : onSubmit,
+            );
+          },
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // ── Tombol Isi Otomatis (demo) ───────────────────────────────────
+        OutlinedButton.icon(
+          onPressed: onFillDemo,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            side: const BorderSide(color: AppColors.primary),
+            minimumSize: const Size(double.infinity, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
+            ),
+          ),
+          icon: const Icon(Icons.auto_fix_high, size: 16),
+          label: const Text(
+            'Isi otomatis',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // ── Label DEMO ──────────────────────────────────────────────────
+        const _DemoLabel(),
+        const SizedBox(height: AppSpacing.md),
+      ],
+    );
+  }
+}
+
+/// Field input dengan sudut membulat seragam.
+class _RoundedField extends StatelessWidget {
+  const _RoundedField({
+    required this.controller,
+    required this.focusNode,
+    required this.label,
+    required this.hint,
+    required this.icon,
+    this.errorText,
+    this.obscureText = false,
+    this.keyboardType,
+    this.inputFormatters,
+    this.textInputAction = TextInputAction.next,
+    this.onChanged,
+    this.onSubmitted,
+    this.suffixIcon,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String label;
+  final String hint;
+  final IconData icon;
+  final String? errorText;
+  final bool obscureText;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextInputAction textInputAction;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final Widget? suffixIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          textInputAction: textInputAction,
+          onChanged: onChanged,
+          onFieldSubmitted: onSubmitted,
+          style: const TextStyle(
+            fontSize: 15,
+            color: AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textMuted,
+            ),
+            prefixIcon: Icon(icon, size: 20, color: AppColors.textSecondary),
+            suffixIcon: suffixIcon,
+            errorText: errorText,
+            filled: true,
+            fillColor: AppColors.surfaceAlt,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.lg,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
+              borderSide: const BorderSide(color: AppColors.divider),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
+              borderSide: const BorderSide(color: AppColors.danger),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.xl),
+              borderSide:
+                  const BorderSide(color: AppColors.danger, width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Label penanda bahwa login ini adalah demo.
+class _DemoLabel extends StatelessWidget {
+  const _DemoLabel();
 
   @override
   Widget build(BuildContext context) {
@@ -275,263 +494,29 @@ class _DemoNotice extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: AppColors.warningBg,
         borderRadius: BorderRadius.circular(AppSpacing.md),
+        border: Border.all(
+          color: AppColors.warning.withValues(alpha: 0.4),
+        ),
       ),
       child: const Row(
         children: [
-          Icon(Icons.info_outline, size: 16, color: AppColors.onPrimarySoft),
+          Icon(Icons.science_outlined, size: 15, color: AppColors.warning),
           SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              'Autentikasi demo - bukan sistem autentikasi kampus resmi.',
+              'DEMO — Autentikasi ini bukan sistem kampus resmi. '
+              'NPM apa pun (≥5 digit) dan password (≥4 karakter) dapat masuk.',
               style: TextStyle(
                 fontSize: 11,
-                height: 1.3,
-                color: AppColors.onPrimarySoft,
+                height: 1.4,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Kartu akun contoh dari API acak.
-///
-/// Password disembunyikan secara default dan hanya ditampilkan ketika
-/// pengguna menekan tombol lihat.
-class _DemoAccountCard extends StatelessWidget {
-  const _DemoAccountCard({
-    required this.controller,
-    required this.onUseAccount,
-  });
-
-  final AppController controller;
-  final void Function(String username, String password) onUseAccount;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final user = controller.demoUser;
-
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppSpacing.lg),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-          ),
-          child: _buildBody(context, user),
-        );
-      },
-    );
-  }
-
-  Widget _buildBody(BuildContext context, Map<String, dynamic>? user) {
-    if (controller.isLoadingDemoUser) {
-      return const Row(
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.onPrimary,
-            ),
-          ),
-          SizedBox(width: AppSpacing.md),
-          Text(
-            'Mengambil akun contoh dari API...',
-            style: TextStyle(fontSize: 12, color: AppColors.onPrimarySoft),
-          ),
-        ],
-      );
-    }
-
-    if (user == null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Akun demo belum tersedia',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.onPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            controller.demoUserError ??
-                'Gagal memuat akun contoh dari API acak.',
-            style: const TextStyle(
-              fontSize: 11,
-              height: 1.3,
-              color: AppColors.onPrimarySoft,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextButton.icon(
-            onPressed: controller.loadDemoUser,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.onPrimary,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
-            ),
-            icon: const Icon(Icons.refresh, size: 16),
-            label: const Text(
-              'Coba lagi',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      );
-    }
-
-    final login = user['login'] as Map? ?? const {};
-    final username = '${login['username'] ?? '-'}';
-    final password = '${login['password'] ?? '-'}';
-
-    return _DemoAccountContent(
-      username: username,
-      password: password,
-      onUseAccount: () => onUseAccount(username, password),
-      onReload: controller.loadDemoUser,
-    );
-  }
-}
-
-/// Isi kartu akun contoh (state reveal password terpisah).
-class _DemoAccountContent extends StatefulWidget {
-  const _DemoAccountContent({
-    required this.username,
-    required this.password,
-    required this.onUseAccount,
-    required this.onReload,
-  });
-
-  final String username;
-  final String password;
-  final VoidCallback onUseAccount;
-  final VoidCallback onReload;
-
-  @override
-  State<_DemoAccountContent> createState() => _DemoAccountContentState();
-}
-
-class _DemoAccountContentState extends State<_DemoAccountContent> {
-  bool _revealed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'AKUN DEMO DARI API ACAK',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
-            color: AppColors.onPrimarySoft,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _row(Icons.person_outline, 'Username', widget.username),
-        const SizedBox(height: AppSpacing.sm),
-        _row(
-          Icons.lock_outline,
-          'Password',
-          _revealed ? widget.password : '••••••••',
-          trailing: IconButton(
-            tooltip: _revealed ? 'Sembunyikan password' : 'Tampilkan password',
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            icon: Icon(
-              _revealed
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              size: 16,
-              color: AppColors.onPrimarySoft,
-            ),
-            onPressed: () => setState(() => _revealed = !_revealed),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: TextButton.icon(
-                onPressed: widget.onUseAccount,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.onPrimary,
-                  backgroundColor: Colors.white.withValues(alpha: 0.18),
-                  minimumSize: const Size(0, 40),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                ),
-                icon: const Icon(Icons.auto_fix_high, size: 16),
-                label: const Text(
-                  'Isi otomatis',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: TextButton.icon(
-                onPressed: widget.onReload,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.onPrimary,
-                  backgroundColor: Colors.white.withValues(alpha: 0.18),
-                  minimumSize: const Size(0, 40),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                ),
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text(
-                  'Ganti akun',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _row(IconData icon, String label, String value, {Widget? trailing}) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: AppColors.onPrimarySoft),
-        const SizedBox(width: AppSpacing.sm),
-        Text(
-          '$label: ',
-          style: const TextStyle(fontSize: 12, color: AppColors.onPrimarySoft),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.onPrimary,
-            ),
-          ),
-        ),
-        ?trailing,
-      ],
     );
   }
 }

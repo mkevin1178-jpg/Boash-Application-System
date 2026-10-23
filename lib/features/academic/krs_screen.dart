@@ -313,15 +313,6 @@ class _SksSummary extends StatelessWidget {
               highlighted: totalSks > 0,
             ),
           ),
-          Container(width: 1, height: 40, color: AppColors.divider),
-          Expanded(
-            child: _Stat(
-              value: totalSks <= 24 ? 'Normal' : 'Lebih',
-              label: 'Status Beban',
-              highlighted: totalSks > 0 && totalSks <= 24,
-              danger: totalSks > 24,
-            ),
-          ),
         ],
       ),
     );
@@ -333,21 +324,15 @@ class _Stat extends StatelessWidget {
     required this.value,
     required this.label,
     this.highlighted = false,
-    this.danger = false,
   });
 
   final String value;
   final String label;
   final bool highlighted;
-  final bool danger;
 
   @override
   Widget build(BuildContext context) {
-    final color = danger
-        ? AppColors.danger
-        : highlighted
-        ? AppColors.primary
-        : AppColors.textMuted;
+    final color = highlighted ? AppColors.primary : AppColors.textMuted;
 
     return Column(
       children: [

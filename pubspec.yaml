@@ -39,6 +39,10 @@ dependencies:
   google_fonts: ^6.2.1
   http: ^1.6.0
 
+  # PDF generation dan preview/print untuk KTM
+  pdf: ^3.11.1
+  printing: ^5.13.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
