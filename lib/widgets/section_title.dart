@@ -2,47 +2,68 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Judul section + aksi "See all".
+/// Judul section + aksi opsional.
+///
+/// Aksi hanya dirender bila [onAction] diisi — tidak ada lagi callback
+/// kosong (tombol mati) seperti pada versi sebelumnya.
 class SectionTitle extends StatelessWidget {
-  final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
   const SectionTitle({
     super.key,
     required this.title,
-    this.actionLabel = 'See all',
+    this.actionLabel,
     this.onAction,
+    this.subtitle,
   });
+
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
+    final hasAction = actionLabel != null && onAction != null;
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        if (actionLabel != null)
+        if (hasAction)
           TextButton(
-            onPressed: onAction ?? () {},
+            onPressed: onAction,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.primary,
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 40),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
               actionLabel!,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
       ],

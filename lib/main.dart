@@ -1,31 +1,101 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import 'api/auth_api.dart';
-import 'login.dart';
-import 'theme/app_colors.dart';
+import 'app/app_theme.dart';
+import 'data/demo_repository.dart';
+import 'features/auth/login_screen.dart';
+import 'features/shell/main_shell.dart';
+import 'features/splash/splash_screen.dart';
+import 'state/app_controller.dart';
 
+/// Entry point aplikasi Boash Student App.
 void main() {
-  runApp(const MyApp());
+  runApp(const BoashStudentApp());
 }
 
-class MyApp extends StatelessWidget {
-  final AuthApi? authApi;
+/// Root aplikasi: tema, dependensi bersama, dan switch halaman.
+class BoashStudentApp extends StatefulWidget {
+  const BoashStudentApp({super.key});
 
-  const MyApp({super.key, this.authApi});
+  @override
+  State<BoashStudentApp> createState() => _BoashStudentAppState();
+}
+
+class _BoashStudentAppState extends State<BoashStudentApp> {
+  late final AppController _controller = AppController();
+  final DemoRepository _repository = DemoRepository();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Student App',
+      title: 'Boash Student App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        scaffoldBackgroundColor: Colors.white,
-      ),
-      home: LoginScreen(authApi: authApi),
+      theme: AppTheme.build(),
+      home: AppRoot(controller: _controller, repository: _repository),
+    );
+  }
+}
+
+/// Memilih halaman berdasarkan status sesi demo.
+///
+/// - Belum siap: layar splash.
+/// - Sudah login: [MainShell] dengan lima menu utama.
+/// - Belum login: [LoginScreen].
+class AppRoot extends StatefulWidget {
+  const AppRoot({
+    super.key,
+    required this.controller,
+    required this.repository,
+  });
+
+  final AppController controller;
+  final DemoRepository repository;
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    // Ambil akun contoh dari API acak sekaligus menampilkan splash.
+    await widget.controller.loadDemoUser();
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    setState(() => _ready = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        if (!_ready) return const SplashScreen();
+
+        if (widget.controller.isLoggedIn) {
+          return MainShell(
+            controller: widget.controller,
+            repository: widget.repository,
+          );
+        }
+
+        return LoginScreen(
+          controller: widget.controller,
+          repository: widget.repository,
+        );
+      },
     );
   }
 }

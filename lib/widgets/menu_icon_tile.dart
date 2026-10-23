@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Lingkaran ikon + label untuk grid menu Home.
+/// Lingkaran ikon + label untuk grid menu.
+///
 /// Semua ikon memakai satu warna: [AppColors.iconNavy].
 class MenuIconTile extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
   const MenuIconTile({
     super.key,
     required this.icon,
     required this.label,
     this.onTap,
+    this.description,
   });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final String? description;
 
   @override
   State<MenuIconTile> createState() => _MenuIconTileState();
@@ -31,35 +34,40 @@ class _MenuIconTileState extends State<MenuIconTile> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: _pressed ? AppColors.iconNavy : AppColors.iconBg,
-              shape: BoxShape.circle,
+      child: Semantics(
+        button: true,
+        label: widget.description ?? widget.label,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: _pressed ? AppColors.iconNavy : AppColors.iconBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                widget.icon,
+                size: 26,
+                color: _pressed ? AppColors.onPrimary : AppColors.iconNavy,
+              ),
             ),
-            child: Icon(
-              widget.icon,
-              size: 28,
-              color: _pressed ? Colors.white : AppColors.iconNavy,
+            const SizedBox(height: 8),
+            Text(
+              widget.label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.2,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
