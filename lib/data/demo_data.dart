@@ -18,10 +18,10 @@ class DemoData {
   const DemoData._();
 
   // ------------------------------------------------------------- identitas
-  static const String universityName = 'Universitas Nusantara';
-  static const String faculty = 'Fakultas Teknik';
-  static const String programStudi = 'Multimedia';
-  static const String nim = '20240001';
+  static const String universityName = 'Universitas Boash Indonesia';
+  static const String faculty = 'Fakultas Teknologi Sains dan Informasi';
+  static const String programStudi = 'Teknologi Rekayasa Multimedia';
+  static const String nim = '24903460031';
   static const String semester = '5';
   static const String academicYear = '2026/2027';
   static const String validUntil = '30 Jun 2027';

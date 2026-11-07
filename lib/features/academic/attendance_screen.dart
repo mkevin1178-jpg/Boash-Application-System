@@ -11,7 +11,6 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_button.dart';
-import '../../widgets/demo_note.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/status_badge.dart';
 import 'qr_scanner_screen.dart';

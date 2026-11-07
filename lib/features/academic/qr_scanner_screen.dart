@@ -8,7 +8,6 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_snackbar.dart';
-import '../../widgets/demo_note.dart';
 import '../../widgets/error_state.dart';
 import 'qr_scan_result_sheet.dart';
 

@@ -11,7 +11,6 @@ import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/demo_note.dart';
 import '../../widgets/menu_icon_tile.dart';
 import '../../widgets/profile_avatar.dart';
 import '../../widgets/section_title.dart';
@@ -215,9 +214,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Program Studi Multimedia - Semester 5',
-                  style: TextStyle(
+                Text(
+                  'Kode Prodi ${widget.controller.session?.programStudi ?? '-'} • '
+                  '${widget.controller.session?.semester ?? '-'}',
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.onPrimarySoft,
                   ),

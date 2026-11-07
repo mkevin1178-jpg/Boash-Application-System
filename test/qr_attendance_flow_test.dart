@@ -92,7 +92,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Riwayat scan QR'),
+      find.text('Belum ada riwayat scan QR'),
       300,
       scrollable: find.byType(Scrollable).first,
     );

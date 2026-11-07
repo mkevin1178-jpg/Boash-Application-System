@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/async_builder.dart';
 import '../../core/async_controller.dart';
-import '../../data/demo_repository.dart';
+import '../../core/error/failure.dart';
 import '../../models/grade.dart';
+import '../../shared/matkul_reference.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -11,6 +12,12 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../widgets/demo_note.dart';
 import '../../widgets/status_badge.dart';
+import '../krs/data/datasources/krs_remote_ds.dart';
+import '../krs/data/models/krs_model.dart';
+import '../krs/data/repositories/krs_repository.dart';
+import '../nilai/data/datasources/nilai_remote_ds.dart';
+import '../nilai/data/models/nilai_model.dart';
+import '../nilai/data/repositories/nilai_repository.dart';
 
 /// Halaman DHS (Daftar Hasil Studi) — diakses melalui Akademik → DHS.
 ///
@@ -20,34 +27,134 @@ import '../../widgets/status_badge.dart';
 ///   angka mutu (AM), dan nilai mutu (AM × SKS).
 /// - Ringkasan: total SKS, total mutu, IPS (Indeks Prestasi Semester), IPK.
 ///
-/// Data diambil dari API mockapi.io berdasarkan NPM mahasiswa yang login,
-/// dengan fallback ke data demo lokal jika API tidak tersedia.
+/// Sumber data:
+/// - nilai dari `features/nilai` (`GET /nilai?npm=...`);
+/// - mata kuliah KRS yang belum bernilai dari `features/krs`, ditampilkan
+///   sebagai "Belum ada nilai".
+///
+/// Tidak ada fallback diam-diam ke nilai demo.
+class _DhsData {
+  const _DhsData({
+    required this.grades,
+    required this.krsFailed,
+    required this.hasKrs,
+  });
+
+  final List<DhsGrade> grades;
+  final bool krsFailed;
+  final bool hasKrs;
+}
+
 class DhsScreen extends StatefulWidget {
   const DhsScreen({
     super.key,
     required this.controller,
-    required this.repository,
+    this.nilaiRepository,
+    this.krsRepository,
   });
 
   final AppController controller;
-  final DemoRepository repository;
+
+  /// Opsional untuk pengujian.
+  final NilaiRepository? nilaiRepository;
+  final KrsRepository? krsRepository;
 
   @override
   State<DhsScreen> createState() => _DhsScreenState();
 }
 
 class _DhsScreenState extends State<DhsScreen> {
-  late final AsyncController<List<DhsGrade>> _dhsController;
+  late final NilaiRepository _nilaiRepository;
+  late final KrsRepository _krsRepository;
+  late final AsyncController<_DhsData> _dhsController;
 
   @override
   void initState() {
     super.initState();
-    final npm = widget.controller.session?.nim ?? '';
-    _dhsController = AsyncController<List<DhsGrade>>(
-      () => widget.repository.fetchDhsGrades(npm),
-    );
-    _dhsController.load();
+    _nilaiRepository =
+        widget.nilaiRepository ??
+        NilaiRepositoryImpl(NilaiRemoteDataSourceImpl());
+    _krsRepository =
+        widget.krsRepository ?? KrsRepositoryImpl(KrsRemoteDataSourceImpl());
+    _dhsController = AsyncController<_DhsData>(_loadDhs)..load();
   }
+
+  Future<_DhsData> _loadDhs() async {
+    final npm = widget.controller.session?.npm ?? '';
+    final nilai = await _nilaiRepository.fetchByNpm(npm);
+
+    var krs = const <KrsItem>[];
+    var krsFailed = false;
+    try {
+      krs = await _krsRepository.fetchByNpm(npm);
+    } on Failure {
+      // Nilai tetap bisa ditampilkan walau data KRS gagal dimuat.
+      krsFailed = true;
+    } catch (_) {
+      krsFailed = true;
+    }
+
+    return _DhsData(
+      grades: _merge(nilai, krs),
+      krsFailed: krsFailed,
+      hasKrs: krs.isNotEmpty,
+    );
+  }
+
+  static List<DhsGrade> _merge(List<Nilai> nilai, List<KrsItem> krs) {
+    final result = <DhsGrade>[];
+    final nilaiKeys = <String>{};
+
+    for (final item in nilai) {
+      nilaiKeys.add(_key(item.kdMatkul, item.thnAkademik, '${item.semester}'));
+      final info = MatkulReference.find(item.kdMatkul);
+
+      result.add(
+        DhsGrade(
+          courseCode: item.kdMatkul,
+          courseName: info?.nama ?? item.kdMatkul,
+          credits: info?.sks ?? 0,
+          na: item.na,
+          hm: item.hm.isEmpty ? '-' : item.hm,
+          am: item.am,
+          thnAkademik: item.thnAkademik,
+          semester: '${item.semester}',
+        ),
+      );
+    }
+
+    for (final item in krs) {
+      final key = _key(item.kdMatkul, item.thnAkademik, '${item.semester}');
+      if (nilaiKeys.contains(key)) continue;
+
+      final info = MatkulReference.find(item.kdMatkul);
+      result.add(
+        DhsGrade(
+          courseCode: item.kdMatkul,
+          courseName: info?.nama ?? item.kdMatkul,
+          credits: info?.sks ?? 0,
+          na: 0,
+          hm: 'Belum ada nilai',
+          am: 0,
+          thnAkademik: item.thnAkademik,
+          semester: '${item.semester}',
+        ),
+      );
+    }
+
+    result.sort((a, b) {
+      final year = a.thnAkademik.compareTo(b.thnAkademik);
+      if (year != 0) return year;
+      final semester = a.semester.compareTo(b.semester);
+      if (semester != 0) return semester;
+      return a.courseCode.compareTo(b.courseCode);
+    });
+
+    return List<DhsGrade>.unmodifiable(result);
+  }
+
+  static String _key(String code, String year, String semester) =>
+      '$code#$year#$semester';
 
   @override
   void dispose() {
@@ -84,14 +191,14 @@ class _DhsScreenState extends State<DhsScreen> {
           ),
         ],
       ),
-      body: AsyncBuilder<List<DhsGrade>>(
+      body: AsyncBuilder<_DhsData>(
         controller: _dhsController,
         loadingMessage: 'Memuat daftar hasil studi...',
-        isEmpty: (data) => data.isEmpty,
+        isEmpty: (data) => data.grades.isEmpty,
         emptyTitle: 'Belum ada data nilai',
         emptyMessage: 'Daftar hasil studi semester ini belum tersedia.',
         emptyIcon: Icons.assignment_outlined,
-        builder: (context, dhsGrades) => RefreshIndicator(
+        builder: (context, data) => RefreshIndicator(
           onRefresh: () => _dhsController.load(force: true),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -102,7 +209,7 @@ class _DhsScreenState extends State<DhsScreen> {
             ),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              // Header KHS — identitas mahasiswa
+              // Header KHS - identitas mahasiswa
               _KhsHeader(
                 nim: nim,
                 name: name,
@@ -112,13 +219,25 @@ class _DhsScreenState extends State<DhsScreen> {
                 academicYear: academicYear,
               ),
               const SizedBox(height: AppSpacing.lg),
+              DemoNotice(
+                text: data.krsFailed
+                    ? 'Nilai diambil dari API nilai. Data KRS gagal dimuat, '
+                          'jadi mata kuliah yang belum bernilai mungkin belum '
+                          'ikut tampil.'
+                    : data.hasKrs
+                    ? 'Nilai diambil dari API nilai. Mata kuliah dari KRS '
+                          'yang belum memiliki nilai ditandai '
+                          '"Belum ada nilai".'
+                    : 'Nilai diambil dari API nilai.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
 
               // Tabel nilai
-              _DhsTable(dhsGrades: dhsGrades),
+              _DhsTable(dhsGrades: data.grades),
               const SizedBox(height: AppSpacing.lg),
 
               // Ringkasan IPS/IPK
-              _IpsSummary(dhsGrades: dhsGrades),
+              _IpsSummary(dhsGrades: data.grades),
               const SizedBox(height: AppSpacing.lg),
 
               // Legenda nilai
@@ -244,7 +363,7 @@ class _KhsHeader extends StatelessWidget {
                 const Divider(height: 1, color: AppColors.divider),
                 _headerRow('Nama', name),
                 const Divider(height: 1, color: AppColors.divider),
-                _headerRow('Program Studi', prodi),
+                _headerRow('Kode Prodi', prodi),
                 const Divider(height: 1, color: AppColors.divider),
                 _headerRow('Fakultas', faculty),
                 const Divider(height: 1, color: AppColors.divider),
@@ -330,7 +449,7 @@ class _DhsTable extends StatelessWidget {
                 _TH('Nama Mata Kuliah', flex: 6),
                 _TH('SKS', flex: 2, center: true),
                 _TH('NA', flex: 2, center: true),
-                _TH('HM', flex: 2, center: true),
+                _TH('HM', flex: 3, center: true),
                 _TH('AM', flex: 2, center: true),
                 _TH('Mutu', flex: 2, center: true),
               ],
@@ -339,13 +458,14 @@ class _DhsTable extends StatelessWidget {
 
           // Baris data
           for (var i = 0; i < dhsGrades.length; i++) ...[
-            _DhsRow(
-              index: i + 1,
-              grade: dhsGrades[i],
-              even: i.isEven,
-            ),
+            _DhsRow(index: i + 1, grade: dhsGrades[i], even: i.isEven),
             if (i < dhsGrades.length - 1)
-              const Divider(height: 1, color: AppColors.divider, indent: 12, endIndent: 12),
+              const Divider(
+                height: 1,
+                color: AppColors.divider,
+                indent: 12,
+                endIndent: 12,
+              ),
           ],
 
           // Footer semester jika ada info semester
@@ -401,11 +521,7 @@ class _TH extends StatelessWidget {
 
 /// Satu baris data nilai DHS.
 class _DhsRow extends StatelessWidget {
-  const _DhsRow({
-    required this.index,
-    required this.grade,
-    required this.even,
-  });
+  const _DhsRow({required this.index, required this.grade, required this.even});
 
   final int index;
   final DhsGrade grade;
@@ -413,12 +529,16 @@ class _DhsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ungraded = grade.hm == 'Belum ada nilai';
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
-      color: even ? AppColors.surface : AppColors.surfaceAlt.withValues(alpha: 0.5),
+      color: even
+          ? AppColors.surface
+          : AppColors.surfaceAlt.withValues(alpha: 0.5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -473,7 +593,7 @@ class _DhsRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              grade.na.toStringAsFixed(1),
+              ungraded ? '-' : grade.na.toStringAsFixed(1),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11,
@@ -483,21 +603,31 @@ class _DhsRow extends StatelessWidget {
           ),
           // HM (Huruf Mutu)
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Center(
-              child: StatusBadge(
-                label: grade.hm,
-                color: _hmColor(grade.hm),
-                background: _hmBackground(grade.hm),
-                dense: true,
-              ),
+              child: ungraded
+                  ? const Text(
+                      'Belum ada nilai',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  : StatusBadge(
+                      label: grade.hm,
+                      color: _hmColor(grade.hm),
+                      background: _hmBackground(grade.hm),
+                      dense: true,
+                    ),
             ),
           ),
           // AM (Angka Mutu)
           Expanded(
             flex: 2,
             child: Text(
-              grade.am.toStringAsFixed(2),
+              ungraded ? '-' : grade.am.toStringAsFixed(2),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11,
@@ -509,7 +639,7 @@ class _DhsRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              grade.mutu.toStringAsFixed(2),
+              ungraded ? '-' : grade.mutu.toStringAsFixed(2),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11,
@@ -550,10 +680,14 @@ class _IpsSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalSks = dhsGrades.fold(0, (sum, g) => sum + g.credits);
-    final totalMutu = dhsGrades.fold(0.0, (sum, g) => sum + g.mutu);
+    // Mata kuliah KRS tanpa nilai tidak boleh menurunkan IPS.
+    final graded = dhsGrades
+        .where((grade) => grade.hm != 'Belum ada nilai')
+        .toList(growable: false);
+    final totalSks = graded.fold(0, (sum, g) => sum + g.credits);
+    final totalMutu = graded.fold(0.0, (sum, g) => sum + g.mutu);
     final ips = totalSks > 0 ? totalMutu / totalSks : 0.0;
-    final lulusCount = dhsGrades.where((g) => g.am >= 2.0).length;
+    final lulusCount = graded.where((g) => g.am >= 2.0).length;
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -611,9 +745,9 @@ class _IpsSummary extends StatelessWidget {
               Expanded(
                 child: _SummaryItem(
                   label: 'MK Lulus',
-                  value: '$lulusCount / ${dhsGrades.length}',
+                  value: '$lulusCount / ${graded.length}',
                   icon: Icons.check_circle_outline,
-                  highlight: lulusCount == dhsGrades.length,
+                  highlight: lulusCount == graded.length,
                 ),
               ),
             ],

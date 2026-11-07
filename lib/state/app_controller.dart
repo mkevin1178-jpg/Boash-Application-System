@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/error/failure.dart';
+import '../features/mahasiswa/data/datasources/mahasiswa_remote_ds.dart';
+import '../features/mahasiswa/data/repositories/mahasiswa_repository.dart';
 import 'app_session.dart';
 
 /// Status proses login.
@@ -26,21 +29,22 @@ class LoginFailure extends LoginOutcome {
 
 /// Pengelola sesi dan alur login.
 ///
-/// Login menggunakan NPM sebagai identitas dan password demo.
-/// Karena endpoint autentikasi resmi belum tersedia, mekanisme ini
-/// **berlabel DEMO** dan hanya memverifikasi format input minimal.
-///
-/// Endpoint `/nilai` hanya dipakai untuk data nilai, bukan autentikasi.
+/// NPM diverifikasi ke endpoint `/mahasiswa`: NPM yang tidak terdaftar
+/// ditolak. **Password masih divalidasi demo di sisi client** karena API
+/// tidak menyediakan field password maupun endpoint autentikasi. Jadi login
+/// ini belum bisa disebut autentikasi terintegrasi.
 ///
 /// **Catatan keamanan:**
-/// - SHA-1 tidak aman untuk produksi. Dipakai hanya untuk kompatibilitas
-///   sementara dengan backend beta yang mungkin menyimpan hash SHA-1.
 /// - Untuk produksi: verifikasi password harus dilakukan di backend melalui
-///   HTTPS dengan Argon2id/bcrypt/scrypt. Jangan kirim hash SHA-1 ke
-///   endpoint produksi tanpa memastikan kontrak API.
+///   HTTPS dengan Argon2id/bcrypt/scrypt.
 /// - Password tidak pernah dicetak ke log.
 class AppController extends ChangeNotifier {
-  AppController();
+  AppController({MahasiswaRepository? mahasiswaRepository})
+    : _mahasiswaRepository =
+          mahasiswaRepository ??
+          MahasiswaRepositoryImpl(MahasiswaRemoteDataSourceImpl());
+
+  final MahasiswaRepository _mahasiswaRepository;
 
   bool _disposed = false;
 
@@ -59,13 +63,15 @@ class AppController extends ChangeNotifier {
 
   // ------------------------------------------------------------------ login
 
-  /// Melakukan login demo dengan NPM dan password.
+  /// Melakukan login dengan NPM dan password.
   ///
-  /// Karena endpoint autentikasi resmi belum tersedia, login ini adalah
-  /// **simulasi**: NPM minimal 5 digit dan password minimal 4 karakter
-  /// diterima. Identitas mahasiswa (profil) diisi dari data demo.
+  /// Alur:
+  /// 1. Validasi format NPM dan password di client.
+  /// 2. Cari NPM ke endpoint `/mahasiswa`.
+  /// 3. Bila ditemukan, sesi diisi dari profil API. Bila tidak, login ditolak.
   ///
-  /// NPM yang dimasukkan akan dipakai sebagai query ke API nilai.
+  /// **Password belum terhubung ke backend** — API tidak punya field
+  /// password. Panjang minimal 4 karakter hanya aturan demo di client.
   Future<LoginOutcome> login(String npm, String password) async {
     if (_loginState == LoginState.submitting) {
       return const LoginFailure('Permintaan login sedang berjalan.');
@@ -120,12 +126,32 @@ class AppController extends ChangeNotifier {
       return const LoginFailure(message);
     }
 
-    // Login berhasil: buat sesi dengan NPM yang dimasukkan
-    _session = AppSession.fromNpm(trimmedNpm);
-    _loginState = LoginState.success;
-    _loginError = null;
+    // Verifikasi NPM ke endpoint /mahasiswa. Password tidak dikirim karena
+    // API memang tidak memiliki field password.
+    try {
+      final records = await _mahasiswaRepository.fetchByNpm(trimmedNpm);
+      if (records.isEmpty) {
+        return _fail('NPM tidak terdaftar.');
+      }
+
+      _session = AppSession.fromMahasiswa(records.first);
+      _loginState = LoginState.success;
+      _loginError = null;
+      _notify();
+      return LoginSuccess(_session!);
+    } on Failure catch (failure) {
+      return _fail(failure.message);
+    } catch (error) {
+      debugPrint('[Login] Kesalahan tak terduga: $error');
+      return _fail('Gagal menghubungi server akademik. Coba lagi.');
+    }
+  }
+
+  LoginFailure _fail(String message) {
+    _loginState = LoginState.failure;
+    _loginError = message;
     _notify();
-    return LoginSuccess(_session!);
+    return LoginFailure(message);
   }
 
   /// Membersihkan sesi dan mengembalikan aplikasi ke keadaan awal.

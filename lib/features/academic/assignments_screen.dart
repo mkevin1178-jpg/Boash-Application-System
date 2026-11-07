@@ -9,7 +9,6 @@ import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/demo_note.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/status_badge.dart';
 import 'assignment_detail_screen.dart';

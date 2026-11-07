@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_snackbar.dart';
+import '../../widgets/demo_note.dart';
 
 /// Halaman login resmi Sivitas Akademika Boash (Prototype).
 ///
@@ -173,8 +174,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         rememberMe: _rememberMe,
                         onRememberMeChanged: (val) =>
                             setState(() => _rememberMe = val ?? false),
-                        onPasswordVisibilityToggle: () =>
-                            setState(() => _passwordVisible = !_passwordVisible),
+                        onPasswordVisibilityToggle: () => setState(
+                          () => _passwordVisible = !_passwordVisible,
+                        ),
                         onNpmChanged: _onNpmChanged,
                         onPasswordChanged: _onPasswordChanged,
                         onSubmit: _submit,
@@ -307,6 +309,12 @@ class _LoginForm extends StatelessWidget {
             color: AppColors.textSecondary,
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
+        const DemoNotice(
+          text:
+              'NPM diverifikasi ke server akademik. Kata sandi masih validasi '
+              'demo karena backend belum menyediakan autentikasi password.',
+        ),
         const SizedBox(height: AppSpacing.xxl),
 
         // ── Field NPM ───────────────────────────────────────────────────
@@ -406,8 +414,7 @@ class _LoginForm extends StatelessWidget {
         ListenableBuilder(
           listenable: controller,
           builder: (context, _) {
-            final submitting =
-                controller.loginState == LoginState.submitting;
+            final submitting = controller.loginState == LoginState.submitting;
             return AppButton(
               label: submitting ? 'MEMPROSES...' : 'MASUK',
               icon: submitting ? null : Icons.login,
@@ -430,10 +437,7 @@ class _LoginForm extends StatelessWidget {
             const SizedBox(width: AppSpacing.xs),
             const Text(
               'Butuh bantuan? ',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textMuted,
-              ),
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
             GestureDetector(
               onTap: onForgotPassword,
@@ -509,10 +513,7 @@ class _RoundedField extends StatelessWidget {
           textInputAction: textInputAction,
           onChanged: onChanged,
           onFieldSubmitted: onSubmitted,
-          style: const TextStyle(
-            fontSize: 15,
-            color: AppColors.textPrimary,
-          ),
+          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
@@ -538,8 +539,10 @@ class _RoundedField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.xl),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.xl),
@@ -547,8 +550,7 @@ class _RoundedField extends StatelessWidget {
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.xl),
-              borderSide:
-                  const BorderSide(color: AppColors.danger, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
             ),
           ),
         ),

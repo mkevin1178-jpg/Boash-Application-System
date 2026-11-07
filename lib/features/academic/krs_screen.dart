@@ -1,97 +1,66 @@
 import 'package:flutter/material.dart';
 
-import '../../core/async_builder.dart';
-import '../../core/async_controller.dart';
-import '../../data/demo_repository.dart';
-import '../../models/course.dart';
+import '../../shared/matkul_reference.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/app_snackbar.dart';
 import '../../widgets/demo_note.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/error_state.dart';
+import '../../widgets/loading_view.dart';
 import '../../widgets/status_badge.dart';
+import '../krs/data/datasources/krs_remote_ds.dart';
+import '../krs/data/models/krs_model.dart';
+import '../krs/data/repositories/krs_repository.dart';
+import '../krs/presentation/krs_controller.dart';
 
 /// Halaman KRS (Kartu Rencana Studi) — diakses melalui Akademik → KRS.
 ///
-/// Menampilkan daftar mata kuliah yang tersedia dan memungkinkan mahasiswa
-/// memilih mata kuliah untuk rencana studi semester mendatang.
+/// Data diambil dari endpoint `/krs?npm=<NPM>` lalu dikelompokkan per tahun
+/// akademik + semester. Nama matkul dan SKS berasal dari [MatkulReference].
 ///
-/// **Status backend:** belum terhubung ke API penyimpanan KRS.
-/// Pilihan hanya tersimpan di memori selama sesi berlangsung.
+/// **Status backend:** pengajuan KRS belum diimplementasikan. Tombol ajukan
+/// sengaja dinonaktifkan agar tidak menampilkan sukses palsu.
 class KrsScreen extends StatefulWidget {
-  const KrsScreen({
-    super.key,
-    required this.controller,
-    required this.repository,
-  });
+  const KrsScreen({super.key, required this.controller, this.repository});
 
   final AppController controller;
-  final DemoRepository repository;
+
+  /// Opsional untuk pengujian; bila null dibuat repository HTTP default.
+  final KrsRepository? repository;
 
   @override
   State<KrsScreen> createState() => _KrsScreenState();
 }
 
 class _KrsScreenState extends State<KrsScreen> {
-  late final AsyncController<List<Course>> _coursesController;
-  final Set<String> _selected = {};
+  late final KrsRepository _repository;
+  late final KrsController _krsController;
 
   @override
   void initState() {
     super.initState();
-    _coursesController = AsyncController<List<Course>>(
-      widget.repository.fetchCourses,
-    );
-    _coursesController.load();
+    _repository =
+        widget.repository ?? KrsRepositoryImpl(KrsRemoteDataSourceImpl());
+    _krsController = KrsController(
+      repository: _repository,
+      npm: widget.controller.session?.npm ?? '',
+    )..load();
   }
 
   @override
   void dispose() {
-    _coursesController.dispose();
+    _krsController.dispose();
     super.dispose();
   }
 
-  void _toggle(String code) {
-    setState(() {
-      if (_selected.contains(code)) {
-        _selected.remove(code);
-      } else {
-        _selected.add(code);
-      }
-    });
-  }
-
-  int _totalSks(List<Course> courses) {
-    return courses
-        .where((c) => _selected.contains(c.code))
-        .fold(0, (sum, c) => sum + c.credits);
-  }
-
-  void _submit(List<Course> courses) {
-    if (_selected.isEmpty) {
-      showAppSnackBar(
-        context,
-        'Pilih minimal satu mata kuliah sebelum mengajukan KRS.',
-        variant: AppSnackBarVariant.error,
-      );
-      return;
-    }
-    // Backend KRS belum tersedia — tampilkan status jujur
-    showAppSnackBar(
-      context,
-      'Rencana studi (KRS) berhasil disimpan.',
-      variant: AppSnackBarVariant.success,
-    );
-  }
+  Future<void> _refresh() => _krsController.load(force: true);
 
   @override
   Widget build(BuildContext context) {
     final session = widget.controller.session;
-    final nim = session?.nim ?? '-';
-    final name = session?.fullName ?? 'Mahasiswa';
-    final prodi = session?.programStudi ?? '-';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -102,138 +71,175 @@ class _KrsScreenState extends State<KrsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: AsyncBuilder<List<Course>>(
-        controller: _coursesController,
-        loadingMessage: 'Memuat daftar mata kuliah...',
-        isEmpty: (data) => data.isEmpty,
-        emptyTitle: 'Tidak ada mata kuliah',
-        emptyMessage: 'Daftar mata kuliah belum tersedia.',
-        emptyIcon: Icons.list_alt_outlined,
-        builder: (context, courses) {
-          final totalSks = _totalSks(courses);
-
-          return Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pageH,
-                    AppSpacing.lg,
-                    AppSpacing.pageH,
-                    AppSpacing.md,
+      body: Column(
+        children: [
+          Expanded(
+            child: ListenableBuilder(
+              listenable: _krsController,
+              builder: (context, _) {
+                return switch (_krsController.state) {
+                  KrsLoading() => const LoadingView(message: 'Memuat KRS...'),
+                  KrsEmpty(:final message) => _EmptyKrs(
+                    message: message,
+                    onRefresh: _refresh,
                   ),
-                  children: [
-                    // Identitas mahasiswa
-                    AppCard(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      color: AppColors.primarySoft,
-                      showShadow: false,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.person_outline,
-                                size: 18,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              const Text(
-                                'Data Mahasiswa',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _infoRow('NIM', nim),
-                          _infoRow('Nama', name),
-                          _infoRow('Program Studi', prodi),
-                          _infoRow(
-                            'Semester',
-                            session?.semester ?? '-',
-                          ),
-                          _infoRow(
-                            'Tahun Akademik',
-                            session?.academicYear ?? '-',
-                          ),
-                        ],
+                  KrsError(:final message) => ErrorState(
+                    title: 'Gagal memuat KRS',
+                    message: message,
+                    onRetry: _refresh,
+                  ),
+                  KrsLoaded(:final groups) => _KrsContent(
+                    npm: session?.npm ?? '-',
+                    name: session?.fullName ?? 'Mahasiswa',
+                    prodi: session?.programStudi ?? '-',
+                    semester: session?.semester ?? '-',
+                    academicYear: session?.academicYear ?? '-',
+                    groups: groups,
+                    onRefresh: _refresh,
+                  ),
+                };
+              },
+            ),
+          ),
+          const _SubmissionBar(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bar bawah dengan tombol pengajuan yang belum terhubung ke server.
+class _SubmissionBar extends StatelessWidget {
+  const _SubmissionBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageH,
+        AppSpacing.md,
+        AppSpacing.pageH,
+        AppSpacing.pageBottom,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          const BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Pengajuan KRS belum terhubung ke server.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          const AppButton(
+            label: 'AJUKAN KRS',
+            icon: Icons.send_outlined,
+            onPressed: null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KrsContent extends StatelessWidget {
+  const _KrsContent({
+    required this.npm,
+    required this.name,
+    required this.prodi,
+    required this.semester,
+    required this.academicYear,
+    required this.groups,
+    required this.onRefresh,
+  });
+
+  final String npm;
+  final String name;
+  final String prodi;
+  final String semester;
+  final String academicYear;
+  final List<KrsGroup> groups;
+  final Future<void> Function() onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.pageH,
+          AppSpacing.lg,
+          AppSpacing.pageH,
+          AppSpacing.pageBottom,
+        ),
+        children: [
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            color: AppColors.primarySoft,
+            showShadow: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(
+                      Icons.person_outline,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Data Mahasiswa',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Ringkasan SKS
-                    _SksSummary(
-                      totalSelected: _selected.length,
-                      totalSks: totalSks,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Label daftar
-                    Row(
-                      children: [
-                        const Text(
-                          'Daftar Mata Kuliah Tersedia',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const Spacer(),
-                        DemoNote(
-                          text: '${courses.length} MK',
-                          compact: true,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Daftar mata kuliah dengan checkbox
-                    for (final course in courses)
-                      _CourseCheckCard(
-                        course: course,
-                        selected: _selected.contains(course.code),
-                        onToggle: () => _toggle(course.code),
-                      ),
-                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.md),
+                _infoRow('NIM', npm),
+                _infoRow('Nama', name),
+                _infoRow('Kode Prodi', prodi),
+                _infoRow('Semester', semester),
+                _infoRow('Tahun Akademik', academicYear),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          DemoNotice(
+            text:
+                'KRS diambil dari API MockAPI berdasarkan NPM $npm. '
+                'Nilai status ditampilkan apa adanya karena artinya belum '
+                'dikonfirmasi.',
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          for (final group in groups) ...[
+            _GroupHeader(group: group),
+            const SizedBox(height: AppSpacing.md),
+            for (final item in group.items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: _KrsCard(item: item),
               ),
-
-              // Tombol ajukan di bawah
-              Container(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.pageH,
-                  AppSpacing.md,
-                  AppSpacing.pageH,
-                  AppSpacing.pageBottom,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  boxShadow: [
-                    const BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 10,
-                      offset: Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: AppButton(
-                  label: _selected.isEmpty
-                      ? 'PILIH MATA KULIAH DULU'
-                      : 'AJUKAN KRS ($totalSks SKS)',
-                  icon: Icons.send_outlined,
-                  onPressed: () => _submit(courses),
-                ),
-              ),
+            if (group.hasUnknownCourses) ...[
+              _UnknownWarning(codes: group.unknownCourseCodes),
+              const SizedBox(height: AppSpacing.md),
             ],
-          );
-        },
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ],
       ),
     );
   }
@@ -274,35 +280,150 @@ class _KrsScreenState extends State<KrsScreen> {
   }
 }
 
-/// Ringkasan jumlah MK dipilih dan total SKS.
-class _SksSummary extends StatelessWidget {
-  const _SksSummary({
-    required this.totalSelected,
-    required this.totalSks,
-  });
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({required this.group});
 
-  final int totalSelected;
-  final int totalSks;
+  final KrsGroup group;
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-      child: Row(
-        children: [
-          Expanded(
-            child: _Stat(
-              value: '$totalSelected',
-              label: 'MK Dipilih',
-              highlighted: totalSelected > 0,
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            group.label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
           ),
-          Container(width: 1, height: 40, color: AppColors.divider),
+        ),
+        StatusBadge(
+          label: '${group.totalSks} SKS',
+          color: AppColors.primary,
+          background: AppColors.primarySoft,
+          dense: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _KrsCard extends StatelessWidget {
+  const _KrsCard({required this.item});
+
+  final KrsItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final info = MatkulReference.find(item.kdMatkul);
+    final nama = info?.nama ?? item.kdMatkul;
+    final sksLabel = info == null ? 'SKS ?' : '${info.sks} SKS';
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.iconBg,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.school_outlined,
+              size: 20,
+              color: AppColors.iconNavy,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: _Stat(
-              value: '$totalSks',
-              label: 'Total SKS',
-              highlighted: totalSks > 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nama.isEmpty ? '-' : nama,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${item.kdMatkul} · Kelas ${item.kdKelas.isEmpty ? '-' : item.kdKelas}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Text(
+                      sksLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: info == null
+                            ? AppColors.warning
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    if (info == null) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 13,
+                        color: AppColors.warning,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // TODO: arti status belum dikonfirmasi.
+          StatusBadge.neutral('Status: ${item.statusRaw}'),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnknownWarning extends StatelessWidget {
+  const _UnknownWarning({required this.codes});
+
+  final List<String> codes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.warningBg,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 16,
+            color: AppColors.warning,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Kode ${codes.join(', ')} belum ada di tabel referensi '
+              'sehingga SKS-nya tidak dihitung pada total semester.',
+              style: const TextStyle(
+                fontSize: 11,
+                height: 1.4,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],
@@ -311,126 +432,28 @@ class _SksSummary extends StatelessWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({
-    required this.value,
-    required this.label,
-    this.highlighted = false,
-  });
+class _EmptyKrs extends StatelessWidget {
+  const _EmptyKrs({required this.message, required this.onRefresh});
 
-  final String value;
-  final String label;
-  final bool highlighted;
+  final String message;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final color = highlighted ? AppColors.primary : AppColors.textMuted;
-
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: MediaQuery.sizeOf(context).height * 0.16),
+          EmptyState(
+            title: 'Belum ada data KRS',
+            message: message,
+            icon: Icons.list_alt_outlined,
+            actionLabel: 'Coba lagi',
+            onAction: onRefresh,
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Kartu satu mata kuliah dengan checkbox pilih.
-class _CourseCheckCard extends StatelessWidget {
-  const _CourseCheckCard({
-    required this.course,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  final Course course;
-  final bool selected;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: AppCard(
-        onTap: onToggle,
-        borderColor: selected ? AppColors.primary : null,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primary : AppColors.iconBg,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                selected ? Icons.check : Icons.school_outlined,
-                size: 20,
-                color: selected ? AppColors.onPrimary : AppColors.iconNavy,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    course.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${course.code} · ${course.lecturer}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    course.room,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                StatusBadge(
-                  label: '${course.credits} SKS',
-                  color: selected ? AppColors.primary : AppColors.textSecondary,
-                  background: selected
-                      ? AppColors.primarySoft
-                      : AppColors.surfaceAlt,
-                ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

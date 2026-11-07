@@ -30,9 +30,7 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Keluar dari Akun?'),
-        content: const Text(
-          'Apakah Anda yakin ingin keluar dari akun ini?',
-        ),
+        content: const Text('Apakah Anda yakin ingin keluar dari akun ini?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -154,32 +152,39 @@ class ProfileScreen extends StatelessWidget {
   Widget _summaryCard(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-      child: AppCard(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-        child: Row(
-          children: [
-            Expanded(
-              child: _Stat(
-                value: '${DemoData.totalCredits}',
-                label: 'Total SKS',
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DemoNote(text: 'Statistik simulasi', compact: true),
+          const SizedBox(height: AppSpacing.sm),
+          AppCard(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _Stat(
+                    value: '${DemoData.totalCredits}',
+                    label: 'Total SKS',
+                  ),
+                ),
+                Container(width: 1, height: 36, color: AppColors.divider),
+                Expanded(
+                  child: _Stat(
+                    value: DemoData.gpa.toStringAsFixed(2),
+                    label: 'IPK',
+                  ),
+                ),
+                Container(width: 1, height: 36, color: AppColors.divider),
+                Expanded(
+                  child: _Stat(
+                    value: '${DemoData.courses.length}',
+                    label: 'Mata kuliah',
+                  ),
+                ),
+              ],
             ),
-            Container(width: 1, height: 36, color: AppColors.divider),
-            Expanded(
-              child: _Stat(
-                value: DemoData.gpa.toStringAsFixed(2),
-                label: 'IPK',
-              ),
-            ),
-            Container(width: 1, height: 36, color: AppColors.divider),
-            Expanded(
-              child: _Stat(
-                value: '${DemoData.courses.length}',
-                label: 'Mata kuliah',
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -194,7 +199,7 @@ class ProfileScreen extends StatelessWidget {
       ),
       (
         Icons.school_outlined,
-        'Program Studi',
+        'Kode Prodi',
         session?.programStudi ?? DemoData.programStudi,
       ),
       (

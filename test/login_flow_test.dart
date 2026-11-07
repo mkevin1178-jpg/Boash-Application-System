@@ -50,11 +50,16 @@ void main() {
       await tester.tap(find.text('MASUK'));
       await tester.pump();
 
-      expect(find.text('NPM tidak valid (minimal 5 digit angka)'), findsOneWidget);
+      expect(
+        find.text('NPM tidak valid (minimal 5 digit angka)'),
+        findsOneWidget,
+      );
       expect(controller.isLoggedIn, isFalse);
     });
 
-    testWidgets('menampilkan error saat kredensial tidak cocok', (tester) async {
+    testWidgets('menampilkan error saat kredensial tidak cocok', (
+      tester,
+    ) async {
       final controller = await createController();
       addTearDown(controller.dispose);
 
@@ -152,17 +157,19 @@ void main() {
       expect(controller.isLoggedIn, isFalse);
     });
 
-    test('berhasil login dengan NPM valid dan password cukup panjang',
-        () async {
-      final controller = await createController();
-      addTearDown(controller.dispose);
+    test(
+      'berhasil login dengan NPM valid dan password cukup panjang',
+      () async {
+        final controller = await createController();
+        addTearDown(controller.dispose);
 
-      final outcome = await controller.login(demoNpm, demoPassword);
+        final outcome = await controller.login(demoNpm, demoPassword);
 
-      expect(outcome, isA<LoginSuccess>());
-      expect(controller.isLoggedIn, isTrue);
-      expect(controller.session?.npm, equals(demoNpm));
-    });
+        expect(outcome, isA<LoginSuccess>());
+        expect(controller.isLoggedIn, isTrue);
+        expect(controller.session?.npm, equals(demoNpm));
+      },
+    );
 
     test('logout menghapus sesi', () async {
       final controller = await createLoggedInController();

@@ -13,7 +13,6 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_snackbar.dart';
-import '../../widgets/demo_note.dart';
 import '../../widgets/profile_avatar.dart';
 
 /// Halaman Kartu Tanda Mahasiswa (KTM) - versi demo.
@@ -80,8 +79,6 @@ class _KtmScreenState extends State<KtmScreen> {
     const textPrimary = PdfColor.fromInt(0xFF17233F);
     const textSecondary = PdfColor.fromInt(0xFF5F6B8A);
     const white = PdfColor.fromInt(0xFFFFFFFF);
-    const warningBg = PdfColor.fromInt(0xFFFEF3C7);
-    const warning = PdfColor.fromInt(0xFFB45309);
 
     doc.addPage(
       pw.Page(
@@ -150,7 +147,9 @@ class _KtmScreenState extends State<KtmScreen> {
                   // Badge Status
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: pw.BoxDecoration(
                       color: brandLight,
                       borderRadius: pw.BorderRadius.circular(4),
@@ -191,12 +190,21 @@ class _KtmScreenState extends State<KtmScreen> {
                   pw.SizedBox(height: 12),
                   _pdfRow('NIM / NPM', nim, textPrimary, textSecondary),
                   _pdfRow('Nama Lengkap', fullName, textPrimary, textSecondary),
-                  _pdfRow('Program Studi', prodi, textPrimary, textSecondary),
+                  _pdfRow('Kode Prodi', prodi, textPrimary, textSecondary),
                   _pdfRow('Fakultas', faculty, textPrimary, textSecondary),
                   _pdfRow('Semester', semester, textPrimary, textSecondary),
                   _pdfRow(
-                      'Tahun Akademik', academicYear, textPrimary, textSecondary),
-                  _pdfRow('Berlaku s/d', validUntil, textPrimary, textSecondary),
+                    'Tahun Akademik',
+                    academicYear,
+                    textPrimary,
+                    textSecondary,
+                  ),
+                  _pdfRow(
+                    'Berlaku s/d',
+                    validUntil,
+                    textPrimary,
+                    textSecondary,
+                  ),
                 ],
               ),
             ),
@@ -211,11 +219,7 @@ class _KtmScreenState extends State<KtmScreen> {
               ),
               child: pw.Text(
                 'Kartu Tanda Mahasiswa Elektronik resmi Sivitas Akademika Boash.',
-                style: pw.TextStyle(
-                  fontSize: 9,
-                  color: brand,
-                  lineSpacing: 2,
-                ),
+                style: pw.TextStyle(fontSize: 9, color: brand, lineSpacing: 2),
               ),
             ),
             pw.SizedBox(height: 16),
@@ -331,7 +335,7 @@ class _KtmScreenState extends State<KtmScreen> {
                 const Divider(height: 1, color: AppColors.divider),
                 _infoRow(
                   Icons.school_outlined,
-                  'Program Studi',
+                  'Kode Prodi',
                   session?.programStudi ?? DemoData.programStudi,
                 ),
                 const Divider(height: 1, color: AppColors.divider),
@@ -344,7 +348,7 @@ class _KtmScreenState extends State<KtmScreen> {
                 _infoRow(
                   Icons.phone_outlined,
                   'Telepon',
-                  session?.phone ?? AppSession.demoPhone,
+                  session?.phone.isNotEmpty == true ? session!.phone : '-',
                 ),
                 const Divider(height: 1, color: AppColors.divider),
                 _infoRow(
@@ -371,10 +375,10 @@ class _KtmScreenState extends State<KtmScreen> {
             onPressed: _exporting
                 ? null
                 : () => showAppSnackBar(
-                      context,
-                      'Gunakan tombol Simpan KTM (PDF) terlebih dahulu, '
-                      'lalu bagikan file PDF dari perangkat Anda.',
-                    ),
+                    context,
+                    'Gunakan tombol Simpan KTM (PDF) terlebih dahulu, '
+                    'lalu bagikan file PDF dari perangkat Anda.',
+                  ),
           ),
         ],
       ),
@@ -464,7 +468,7 @@ class _KtmScreenState extends State<KtmScreen> {
                       _cardRow('NIM / NPM', session?.nim ?? DemoData.nim),
                       _cardRow('Nama', fullName),
                       _cardRow(
-                        'Program Studi',
+                        'Kode Prodi',
                         session?.programStudi ?? DemoData.programStudi,
                       ),
                       _cardRow(

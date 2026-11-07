@@ -37,7 +37,8 @@ class Grade {
       taskScore: taskScore,
       midTermScore: midTermScore,
       finalScore: finalScore,
-      weight: 40, // bobot default — tidak dipakai bila totalScoreOverride tersedia
+      weight:
+          40, // bobot default — tidak dipakai bila totalScoreOverride tersedia
       totalScoreOverride: totalScoreOverride,
       letterGradeOverride: letterGradeOverride,
       angkaMutu: angkaMutu,

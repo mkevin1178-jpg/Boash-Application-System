@@ -50,8 +50,7 @@ class _AcademicScreenState extends State<AcademicScreen> {
           children: [
             const PageHeader(
               title: 'Akademik',
-              subtitle:
-                  'Materi, tugas, nilai, presensi, KTM, KRS, dan DHS',
+              subtitle: 'Materi, tugas, nilai, presensi, KTM, KRS, dan DHS',
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -116,22 +115,14 @@ class _AcademicScreenState extends State<AcademicScreen> {
                   MenuIconTile(
                     icon: Icons.edit_note_outlined,
                     label: 'KRS',
-                    onTap: () => _open(
-                      KrsScreen(
-                        controller: widget.controller,
-                        repository: widget.repository,
-                      ),
-                    ),
+                    onTap: () =>
+                        _open(KrsScreen(controller: widget.controller)),
                   ),
                   MenuIconTile(
                     icon: Icons.receipt_long_outlined,
                     label: 'DHS',
-                    onTap: () => _open(
-                      DhsScreen(
-                        controller: widget.controller,
-                        repository: widget.repository,
-                      ),
-                    ),
+                    onTap: () =>
+                        _open(DhsScreen(controller: widget.controller)),
                   ),
                   MenuIconTile(
                     icon: Icons.qr_code_scanner,
@@ -153,13 +144,19 @@ class _AcademicScreenState extends State<AcademicScreen> {
                 AppSpacing.pageH,
                 AppSpacing.md,
               ),
-              child: const Text(
-                'Mata kuliah semester berjalan',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
+              child: Row(
+                children: const [
+                  Text(
+                    'Mata kuliah semester berjalan',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.sm),
+                  DemoNote(text: 'Data simulasi', compact: true),
+                ],
               ),
             ),
             ..._courseCards(context),
