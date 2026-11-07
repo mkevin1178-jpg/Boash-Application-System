@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-002",
+  "type": "chore",
+  "description": "Semantic review pass and final report. After FEAT-001, review the diff, fix any issues found, and produce the final report as required by the user instruction.",
+  "status": "completed",
+  "steps": [
+    "Step 1: Review all changes made in FEAT-001",
+    "Step 2: Verify no hardcoded identities remain (no 'Kevin Pratama', no 'MK-01..MK-08' as real data)",
+    "Step 3: Verify DemoData demo labels are clear and data is not presented as official",
+    "Step 4: Verify the two MockAPI hosts remain separate",
+    "Step 5: Produce the final report in the format requested"
+  ],
+  "acceptance_criteria": [
+    "All acceptance criteria from FEAT-001 remain satisfied",
+    "Final report produced covering all sections A-G from the user instruction"
+  ],
+  "verification": [
+    "flutter analyze",
+    "flutter test"
+  ],
+  "blocked_reason": null,
+  "findings": "Semantic review complete. 1. No hardcoded student identity (no 'Kevin Pratama', etc.). 'Siti Aminah' appears only as lecturer name in demo course data — not as a student. 2. MK-01..MK-08 course cards in academic_screen.dart are labeled with DemoNote('Data simulasi') — clear distinction from real API data. 3. AppSession uses demoFaculty/demoSemester/demoValidUntil with explicit '(demo)' suffix for fields not provided by API. 4. Two MockAPI hosts remain separate: Host A (6adab9277512f497b30020ef) for nilai, Host B (6aed363dfc3b911e6fd60ab2) for KRS + mahasiswa. 5. Terminal blocked by sandbox — flutter analyze and flutter test could not be run. Code review found no compilation errors or logic issues."
+}

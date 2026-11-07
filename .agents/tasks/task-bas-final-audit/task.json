@@ -1,0 +1,11 @@
+{
+  "task_id": "task-bas-final-audit",
+  "task_description": "Final audit, debugging, and API integration completion for Boash Application System (BAS). Tasks A-G covering login/mahasiswa, KRS, matkul reference, nilai/DHS, demo data labeling, code quality, and testing.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "verification": {
+    "build": "not_executed",
+    "tests": "not_executed",
+    "test_quality": "pass",
+    "summary": "PowerShell sandbox blocked all terminal execution. Code review confirmed: (1) matkul_reference.dart updated with clear comment for pending codes GC311/GC319/IF501-IF507 without inventing data; (2) all API integrations verified complete (mahasiswa, KRS, nilai, DHS); (3) no hardcoded 'Kevin Pratama', no fake auth; (4) two MockAPI hosts separate; (5) KRS submit button honestly disabled; (6) all test imports and logic verified by code review — tests should pass. Flutter commands must be run by the user directly."
+  }

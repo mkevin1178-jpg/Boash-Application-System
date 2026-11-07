@@ -43,7 +43,8 @@ class AppSession {
   // ---------------------------------------------------------------- default
   // Nilai di bawah hanya dipakai untuk field yang memang tidak disediakan
   // endpoint `/mahasiswa`. Semuanya diberi label demo di UI.
-  static const String demoFaculty = 'Fakultas Teknologi Sains dan Informasi';
+  static const String demoFaculty =
+      'Fakultas Teknologi Sains dan Informasi (demo)';
   static const String demoProgramStudi = 'Program Studi (demo)';
   static const String demoSemester = '5 (Ganjil) (demo)';
   static const String demoAcademicYear = '2026/2027 (demo)';

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:bas/core/network/http_client.dart';
 import 'package:bas/features/krs/data/datasources/krs_remote_ds.dart';
+import 'package:bas/features/krs/data/models/krs_model.dart';
 import 'package:bas/features/krs/data/repositories/krs_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +11,36 @@ import 'package:http/testing.dart';
 import 'support/test_harness.dart';
 
 void main() {
+  test('KrsItem parse id int/string dan abaikan field sampah', () {
+    final intId = KrsItem.fromJson(<String, dynamic>{
+      'id': 119308,
+      'npm': ' $demoNpm ',
+      'kd_matkul': 'GC327',
+      'kd_kelas': 'A',
+      'thn_akademik': '2024/2025',
+      'semester': '1',
+      'status': 1,
+      'tahun': 'tahun 119327',
+      'tri_semester': null,
+    });
+    final stringId = KrsItem.fromJson(<String, dynamic>{
+      'id': '119317',
+      'npm': demoNpm,
+      'kd_matkul': 'IF503',
+      'kd_kelas': 'B',
+      'thn_akademik': '2024/2025',
+      'semester': 5,
+      'status': '0',
+    });
+
+    expect(intId.id, 119308);
+    expect(intId.npm, demoNpm);
+    expect(intId.statusRaw, 1);
+    expect(stringId.id, 119317);
+    expect(stringId.semester, 5);
+    expect(stringId.statusRaw, 0);
+  });
+
   test('data source memakai Host B, path /krs, dan query NPM', () async {
     final mock = MockClient((request) async {
       expect(request.method, 'GET');
@@ -60,6 +91,8 @@ void main() {
             'thn_akademik': '2024/2025',
             'semester': '1',
             'status': 1,
+            'tahun': 'tahun 119327',
+            'tri_semester': null,
           },
           <String, dynamic>{
             'id': '9',
@@ -103,6 +136,25 @@ void main() {
             'semester': '2',
             'status': 0,
           },
+          // IF503 kelas A dan B adalah duplikat kunci. Status 1 (B) menang.
+          <String, dynamic>{
+            'id': 10,
+            'npm': demoNpm,
+            'kd_matkul': 'IF503',
+            'kd_kelas': 'A',
+            'thn_akademik': '2024/2025',
+            'semester': '5',
+            'status': 0,
+          },
+          <String, dynamic>{
+            'id': 11,
+            'npm': demoNpm,
+            'kd_matkul': 'IF503',
+            'kd_kelas': 'B',
+            'thn_akademik': '2024/2025',
+            'semester': '5',
+            'status': 1,
+          },
           // NPM lain harus dibuang walau endpoint mengembalikannya.
           <String, dynamic>{
             'id': 4,
@@ -128,8 +180,9 @@ void main() {
       'GC327',
       'GC302',
       'IF501',
+      'IF503',
     ]);
-    expect(records.map((item) => item.id), <int>[1, 9, 7]);
+    expect(records.map((item) => item.id), <int>[1, 9, 7, 11]);
     expect(records.every((item) => item.npm == demoNpm), isTrue);
   });
 }

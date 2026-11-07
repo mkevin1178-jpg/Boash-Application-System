@@ -11,6 +11,7 @@ import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/demo_note.dart';
 import '../../widgets/menu_icon_tile.dart';
 import '../../widgets/profile_avatar.dart';
 import '../../widgets/section_title.dart';
@@ -163,6 +164,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildHeader(
                 session?.fullName ?? 'Mahasiswa',
                 session?.initials ?? 'M',
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.pageH,
+                  AppSpacing.lg,
+                  AppSpacing.pageH,
+                  0,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: DemoNote(
+                    text: 'Jadwal, tugas & pengumuman: data simulasi',
+                    compact: true,
+                  ),
+                ),
               ),
               AsyncBuilder<DashboardData>(
                 controller: _dataController,
