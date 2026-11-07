@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../core/async_builder.dart';
 import '../../core/async_controller.dart';
+import '../../core/date_format.dart';
 import '../../data/demo_repository.dart';
 import '../../models/attendance.dart';
+import '../../models/attendance_log.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/app_button.dart';
 import '../../widgets/demo_note.dart';
+import '../../widgets/section_title.dart';
 import '../../widgets/status_badge.dart';
+import 'qr_scanner_screen.dart';
 
 /// Halaman rekap presensi demo per mata kuliah.
 class AttendanceScreen extends StatefulWidget {
@@ -28,20 +33,46 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   late final AsyncController<List<AttendanceRecord>> _attendanceController;
+  late final AsyncController<List<AttendanceLog>> _logsController;
 
   @override
   void initState() {
     super.initState();
     _attendanceController = AsyncController<List<AttendanceRecord>>(
-      widget.repository.fetchAttendance,
+      () => widget.repository.fetchAttendanceFor(
+        widget.controller.session?.npm ?? '',
+      ),
+    );
+    _logsController = AsyncController<List<AttendanceLog>>(
+      () => widget.repository.fetchAttendanceLogs(
+        widget.controller.session?.npm ?? '',
+      ),
     );
     _attendanceController.load();
+    _logsController.load();
   }
 
   @override
   void dispose() {
     _attendanceController.dispose();
+    _logsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _scanQr() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => QrScannerScreen(
+          controller: widget.controller,
+          repository: widget.repository,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await Future.wait([
+      _attendanceController.load(force: true),
+      _logsController.load(force: true),
+    ]);
   }
 
   @override
@@ -73,10 +104,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              const DemoNotice(
-                text:
-                    'Rekap presensi di bawah adalah data contoh, bukan '
-                    'catatan kehadiran resmi.',
+              AppButton(
+                label: 'Scan QR Presensi',
+                icon: Icons.qr_code_scanner,
+                onPressed: _scanQr,
               ),
               const SizedBox(height: AppSpacing.lg),
               for (final record in records)
@@ -84,12 +115,89 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
                   child: _AttendanceCard(record: record),
                 ),
+              const SizedBox(height: AppSpacing.md),
+              const SectionTitle(title: 'Riwayat scan QR'),
+              const SizedBox(height: AppSpacing.md),
+              AsyncBuilder<List<AttendanceLog>>(
+                controller: _logsController,
+                loadingMessage: 'Memuat riwayat scan...',
+                errorTitle: 'Riwayat scan tidak tersedia',
+                isEmpty: (logs) => logs.isEmpty,
+                emptyTitle: 'Belum ada riwayat scan QR',
+                emptyMessage: 'Hasil scan QR presensi akan muncul di sini.',
+                emptyIcon: Icons.qr_code_scanner,
+                builder: (context, logs) => Column(
+                  children: [
+                    for (final log in logs)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                        child: _AttendanceLogCard(log: log),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _AttendanceLogCard extends StatelessWidget {
+  const _AttendanceLogCard({required this.log});
+
+  final AttendanceLog log;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(AppSpacing.lg),
+    child: Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            color: AppColors.iconBg,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.qr_code_scanner, color: AppColors.iconNavy),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                log.courseName,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${log.courseCode} · Pertemuan ke-${log.meeting}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                '${DateFormat.shortDate(log.scannedAt)} · ${DateFormat.time(log.scannedAt)}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const StatusBadge.success('HADIR', icon: Icons.check_circle_outline),
+      ],
+    ),
+  );
 }
 
 /// Kartu rekap presensi satu mata kuliah.

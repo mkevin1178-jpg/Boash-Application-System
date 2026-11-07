@@ -36,12 +36,6 @@ class SettingsScreen extends StatelessWidget {
           AppSpacing.pageBottom,
         ),
         children: [
-          const DemoNotice(
-            text:
-                'Aplikasi berjalan pada mode demo. Tidak ada pengaturan '
-                'akun resmi karena belum terhubung ke sistem kampus.',
-          ),
-          const SizedBox(height: AppSpacing.xl),
           const _SectionLabel('Tampilan'),
           const SizedBox(height: AppSpacing.sm),
           AppCard(
@@ -66,7 +60,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          const _SectionLabel('Akun demo'),
+          const _SectionLabel('Akun Mahasiswa'),
           const SizedBox(height: AppSpacing.sm),
           AppCard(
             padding: const EdgeInsets.symmetric(
@@ -98,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
                 _tile(
                   icon: Icons.info_outline,
                   title: 'Tentang aplikasi',
-                  subtitle: 'Boash Student App versi 2.0 (prototipe PBL)',
+                  subtitle: 'Boash Student App v2.0 (Prototype)',
                 ),
                 const Divider(height: 1, color: AppColors.divider),
                 _tile(
@@ -108,28 +102,22 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1, color: AppColors.divider),
                 _tile(
-                  icon: Icons.science_outlined,
+                  icon: Icons.storage_outlined,
                   title: 'Sumber data',
-                  subtitle: 'Data lokal (demo) dan randomuser.me',
+                  subtitle: 'Data lokal dan integrasi API nilai',
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.xxl),
           AppButton(
-            label: 'KELUAR DARI AKUN DEMO',
+            label: 'KELUAR DARI AKUN',
             icon: Icons.logout,
             variant: AppButtonVariant.danger,
             onPressed: () {
               controller.logout();
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const DemoNotice(
-            text:
-                'Keluar akan menghapus sesi demo yang tersimpan di memori '
-                'aplikasi. Data contoh tidak ikut terhapus.',
           ),
         ],
       ),

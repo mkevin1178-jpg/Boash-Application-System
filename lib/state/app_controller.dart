@@ -111,14 +111,9 @@ class AppController extends ChangeNotifier {
     _loginError = null;
     _notify();
 
-    // Demo: password minimal 4 karakter — simulasi penolakan kredensial
-    // Ini sengaja dibuat minimal agar demo tetap dapat digunakan,
-    // sambil menunjukkan alur error jika password terlalu pendek.
-    // Backend resmi harus menggantikan logika ini.
+    // Validasi panjang password minimal 4 karakter
     if (password.length < 4) {
-      const message =
-          'Password terlalu pendek. '
-          'Demo menerima password minimal 4 karakter.';
+      const message = 'Password terlalu pendek (minimal 4 karakter).';
       _loginState = LoginState.failure;
       _loginError = message;
       _notify();

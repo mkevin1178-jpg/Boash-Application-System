@@ -2,7 +2,7 @@
 
 > **Status implementasi:** `[x]` = sudah selesai di aplikasi saat ini,
 > `[ ]` = belum dikerjakan (P2 di luar ruang lingkup PBL tahap ini).
-> Verifikasi terakhir: `flutter analyze` 0 isu · `flutter test` 20 uji lulus.
+> Verifikasi kode: `flutter analyze` bersih · `flutter test` 43 uji lulus.
 > Rincian dokumentasi ada di `README.md`, `design.md`, `WORKFLOW.md`, dan
 > `docs/IMPLEMENTATION_PLAN.md`.
 
@@ -10,8 +10,8 @@
 
 Boash Student App merupakan aplikasi beta untuk proyek PBL sistem
 kampus. Tujuannya adalah membangun prototipe pengalaman mahasiswa yang
-rapi dan mudah digunakan. **Data mahasiswa asli tidak diperlukan**; API
-acak tetap dapat dipakai untuk kebutuhan simulasi login/profil.
+rapi dan mudah digunakan. **Data mahasiswa asli tidak diperlukan**; login
+demo lokal memakai NPM yang dimasukkan dan profil lain tetap contoh.
 Rekomendasi berikut memprioritaskan kualitas alur, konsistensi UI, dan
 fitur yang realistis untuk prototipe.
 
@@ -52,6 +52,8 @@ fitur yang realistis untuk prototipe.
 -   [x] **Nilai:** daftar nilai demo per mata kuliah dan ringkasan
     semester.
 -   [x] **Presensi:** ringkasan kehadiran demo per mata kuliah.
+-   [x] **QR Attendance demo:** scan payload terstruktur, validasi jadwal dan
+    kedaluwarsa, log per NPM di memori, riwayat, dan rekap gabungan.
 -   [x] **KTM digital demo:** identitas contoh dan QR/barcode hanya
     sebagai ilustrasi, kecuali benar-benar ada mekanisme verifikasi.
 -   [x] **Pencarian/filter:** pencarian materi, tugas, dan pengumuman
@@ -110,20 +112,17 @@ fitur yang realistis untuk prototipe.
 > dipakai pada jadwal mingguan. Builder akan lebih penting bila data
 > dinormalkan dari server.
 
-### API dan simulasi login
+### Sesi dan simulasi login
 
--   [x] API acak boleh dipertahankan untuk PBL; dokumentasikan bahwa
-    data dan autentikasi bersifat demo.
--   [x] Pisahkan pemanggilan API ke kelas service, tangani timeout,
-    status HTTP, dan respons yang tidak sesuai.
+-   [x] Login demo lokal memvalidasi format NPM dan kata sandi; bukan
+    autentikasi resmi kampus.
+-   [x] Pemanggilan API nilai dipisahkan ke kelas service dan memfilter
+    hasil per NPM.
 -   [x] Jangan menaruh kredensial sensitif di source code atau
     menampilkan password di UI.
 -   [x] Validasi input di sisi aplikasi untuk pengalaman pengguna;
     jangan menganggap validasi UI sebagai keamanan produksi.
--   [x] Bila API acak tidak menyediakan autentikasi username/password
-    sesungguhnya, gunakan alur mock login yang eksplisit dan konsisten,
-    bukan mengklaimnya sebagai autentikasi resmi.
--   [x] Jangan mengirim data pribadi nyata ke API acak.
+-   [x] Jangan mengirim data pribadi nyata ke API eksternal.
 
 ### Kualitas dan pengujian
 
@@ -261,8 +260,8 @@ fitur yang realistis untuk prototipe.
 ## 8. Catatan ruang lingkup
 
 Daftar ini adalah rekomendasi untuk **aplikasi beta PBL**, bukan
-tuntutan membangun sistem akademik produksi penuh. API acak tetap dapat
-digunakan untuk simulasi login/profil. Integrasi SIAKAD, autentikasi
+tuntutan membangun sistem akademik produksi penuh. Login tetap lokal dan
+berlabel demo. Integrasi SIAKAD, autentikasi
 kampus, penyimpanan nilai resmi, presensi resmi, dan verifikasi KTM
 tidak termasuk kewajiban kecuali secara khusus ditambahkan ke ruang
 lingkup proyek.

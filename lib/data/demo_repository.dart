@@ -3,11 +3,14 @@ import 'dart:async';
 import '../models/announcement.dart';
 import '../models/assignment.dart';
 import '../models/attendance.dart';
+import '../models/attendance_log.dart';
 import '../models/class_session.dart';
 import '../models/course.dart';
 import '../models/course_material.dart';
 import '../models/grade.dart';
 import '../services/nilai_api.dart';
+import '../services/qr_attendance_service.dart';
+import '../shared/matkul_reference.dart';
 import 'demo_data.dart';
 
 /// Repository data demo.
@@ -23,7 +26,9 @@ class DemoRepository {
     this.latency = const Duration(milliseconds: 350),
     this.simulateFailure = false,
     NilaiApi? nilaiApi,
-  }) : _nilaiApi = nilaiApi ?? const NilaiApi();
+    QrAttendanceService? qrAttendanceService,
+  }) : _nilaiApi = nilaiApi ?? const NilaiApi(),
+       _qrAttendanceService = qrAttendanceService ?? QrAttendanceService();
 
   /// Jeda artificial sebelum data dikembalikan.
   final Duration latency;
@@ -32,6 +37,8 @@ class DemoRepository {
   final bool simulateFailure;
 
   final NilaiApi _nilaiApi;
+  final QrAttendanceService _qrAttendanceService;
+  final List<AttendanceLog> _attendanceLogs = [];
 
   DateTime get _now => DateTime.now();
 
@@ -39,7 +46,7 @@ class DemoRepository {
     await Future<void>.delayed(latency);
     if (simulateFailure) {
       throw Exception(
-        'Data demo gagal dimuat. Periksa koneksi lalu coba lagi.',
+        'Data gagal dimuat. Periksa koneksi lalu coba lagi.',
       );
     }
     return value;
@@ -98,9 +105,7 @@ class DemoRepository {
   /// Jika gagal jaringan, fallback ke data demo lokal.
   Future<List<DhsGrade>> fetchDhsGrades(String npm) async {
     if (simulateFailure) {
-      throw Exception(
-        'Data DHS gagal dimuat. Periksa koneksi lalu coba lagi.',
-      );
+      throw Exception('Data DHS gagal dimuat. Periksa koneksi lalu coba lagi.');
     }
 
     if (npm.trim().isEmpty) {
@@ -122,7 +127,7 @@ class DemoRepository {
                 courseName: g.courseName.isNotEmpty
                     ? g.courseName
                     : g.courseCode,
-                credits: 3,
+                credits: MatkulReference.sksOf(g.courseCode) ?? 3,
                 na: g.totalScore,
                 hm: g.letterGrade,
                 am: g.angkaMutu ?? _amFromHm(g.letterGrade),
@@ -138,6 +143,52 @@ class DemoRepository {
 
   Future<List<AttendanceRecord>> fetchAttendance() =>
       _respond(DemoData.attendance);
+
+  /// Validasi dan catat QR demo. Penulisan hanya dilakukan setelah repository
+  /// berhasil merespons, sehingga simulateFailure tidak menghasilkan HADIR.
+  Future<ScanResult> submitQrScan(String? raw, {required String npm}) async {
+    await Future<void>.delayed(latency);
+    if (simulateFailure) {
+      throw Exception('Scan QR gagal diproses. Silakan coba lagi.');
+    }
+    final result = _qrAttendanceService.evaluate(
+      raw: raw,
+      npm: npm,
+      courses: DemoData.courses,
+      schedule: DemoData.buildSchedule(),
+      existing: _attendanceLogs,
+    );
+    if (result.isSuccess && result.log != null) {
+      _attendanceLogs.add(result.log!);
+    }
+    return result;
+  }
+
+  /// Log selalu difilter per NPM agar sesi mahasiswa tidak saling bercampur.
+  Future<List<AttendanceLog>> fetchAttendanceLogs(String npm) => _respond(
+    _attendanceLogs.where((log) => log.npm == npm).toList(growable: false),
+  );
+
+  /// Rekap dasar demo ditambah setiap log QR sebagai pertemuan tambahan.
+  /// Ini asumsi demo; aturan rekap resmi belum tersedia.
+  Future<List<AttendanceRecord>> fetchAttendanceFor(String npm) async {
+    final records = await fetchAttendance();
+    final logs = await fetchAttendanceLogs(npm);
+    return [
+      for (final record in records)
+        () {
+          final added = logs
+              .where((log) => log.courseCode == record.courseCode)
+              .length;
+          return added == 0
+              ? record
+              : record.copyWith(
+                  totalMeeting: record.totalMeeting + added,
+                  attended: record.attended + added,
+                );
+        }(),
+    ];
+  }
 
   Future<List<Announcement>> fetchAnnouncements() =>
       _respond(DemoData.buildAnnouncements(_now));

@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../core/config/api_config.dart';
 import '../models/grade.dart';
+import '../shared/matkul_reference.dart';
 
 /// Hasil pemanggilan API nilai: berhasil atau gagal.
 sealed class NilaiResult {
@@ -40,13 +42,7 @@ class NilaiFailure extends NilaiResult {
 /// **Penting:** server tidak selalu memfilter hasil dengan benar berdasarkan
 /// query `npm`. Filter client-side wajib diterapkan setelah respons diterima.
 class NilaiApi {
-  const NilaiApi({
-    this.timeout = const Duration(seconds: 10),
-    this.client,
-  });
-
-  static const String _baseUrl =
-      'https://6adab9277512f497b30020ef.mockapi.io/nilai';
+  const NilaiApi({this.timeout = ApiConfig.timeout, this.client});
 
   final Duration timeout;
 
@@ -64,11 +60,12 @@ class NilaiApi {
   Future<NilaiResult> fetchGradesByNpm(String npm) async {
     final trimmedNpm = npm.trim();
     if (trimmedNpm.isEmpty) {
-      return const NilaiFailure('NPM tidak tersedia. Nilai tidak dapat dimuat.');
+      return const NilaiFailure(
+        'NPM tidak tersedia. Nilai tidak dapat dimuat.',
+      );
     }
 
-    final uri = Uri.parse(
-        '$_baseUrl?npm=${Uri.encodeQueryComponent(trimmedNpm)}');
+    final uri = ApiConfig.nilaiUri(trimmedNpm);
     http.Client? activeClient;
 
     try {
@@ -135,7 +132,7 @@ class NilaiApi {
 
     return Grade.fromApi(
       courseCode: kode,
-      courseName: kode,
+      courseName: MatkulReference.nameOf(kode),
       taskScore: naTugas,
       midTermScore: naUts,
       finalScore: naUas,
@@ -150,6 +147,8 @@ class NilaiApi {
   static double _toDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is num) return value.toDouble();
-    return double.tryParse('$value') ?? 0.0;
+    final text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') return 0.0;
+    return double.tryParse(text.replaceAll(',', '.')) ?? 0.0;
   }
 }

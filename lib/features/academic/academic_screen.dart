@@ -10,11 +10,12 @@ import '../../widgets/menu_icon_tile.dart';
 import '../../widgets/page_header.dart';
 import 'assignments_screen.dart';
 import 'attendance_screen.dart';
+import '../nilai/presentation/nilai_list_screen.dart';
 import 'dhs_screen.dart';
-import 'grades_screen.dart';
 import 'krs_screen.dart';
 import 'ktm_screen.dart';
 import 'materials_screen.dart';
+import 'qr_scanner_screen.dart';
 
 /// Halaman Akademik — satu pintu ke Materi, Tugas, Nilai, Presensi, KTM,
 /// KRS, dan DHS.
@@ -50,7 +51,7 @@ class _AcademicScreenState extends State<AcademicScreen> {
             const PageHeader(
               title: 'Akademik',
               subtitle:
-                  'Materi, tugas, nilai, presensi, KTM, KRS, dan DHS demo',
+                  'Materi, tugas, nilai, presensi, KTM, KRS, dan DHS',
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -91,9 +92,8 @@ class _AcademicScreenState extends State<AcademicScreen> {
                     icon: Icons.bar_chart_outlined,
                     label: 'Nilai',
                     onTap: () => _open(
-                      GradesScreen(
-                        controller: widget.controller,
-                        repository: widget.repository,
+                      NilaiListScreen(
+                        npm: widget.controller.session?.npm ?? '',
                       ),
                     ),
                   ),
@@ -133,20 +133,17 @@ class _AcademicScreenState extends State<AcademicScreen> {
                       ),
                     ),
                   ),
+                  MenuIconTile(
+                    icon: Icons.qr_code_scanner,
+                    label: 'Scan QR',
+                    onTap: () => _open(
+                      QrScannerScreen(
+                        controller: widget.controller,
+                        repository: widget.repository,
+                      ),
+                    ),
+                  ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.pageH,
-                AppSpacing.md,
-                AppSpacing.pageH,
-                AppSpacing.lg,
-              ),
-              child: const DemoNotice(
-                text:
-                    'Seluruh isi Akademik adalah data contoh. Tidak terhubung '
-                    'dengan SIAKAD atau sistem kampus mana pun.',
               ),
             ),
             Padding(

@@ -39,7 +39,7 @@ class AppSession {
   }
 
   // ---------------------------------------------------------------- default
-  static const String demoFullName = 'Mahasiswa Demo';
+  static const String demoFullName = 'Kevin Pratama';
   static const String demoFaculty = 'Fakultas Teknik';
   static const String demoProgramStudi = 'Multimedia';
   static const String demoPhone = '+62 812 3456 7890';

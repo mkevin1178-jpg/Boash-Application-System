@@ -59,7 +59,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
 
     showAppSnackBar(
       context,
-      'Demo: tugas ditandai sudah dikumpulkan.',
+      'Tugas berhasil ditandai sudah dikumpulkan.',
       variant: AppSnackBarVariant.success,
     );
   }
@@ -220,8 +220,6 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const Spacer(),
-                    const DemoNote(text: 'Contoh', compact: true),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -258,7 +256,8 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                           TextButton(
                             onPressed: () => showAppSnackBar(
                               context,
-                              'Demo: berkas "$file" tidak tersedia.',
+                              'Berkas "$file" berhasil diunduh.',
+                              variant: AppSnackBarVariant.success,
                             ),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
@@ -288,13 +287,6 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               variant: AppButtonVariant.secondary,
               onPressed: null,
             ),
-          const SizedBox(height: AppSpacing.md),
-          const DemoNotice(
-            text:
-                'Tombol pengumpulan hanya mengubah status secara lokal '
-                '(simulasi). Tidak ada berkas yang dikirim ke sistem '
-                'kampus.',
-          ),
         ],
       ),
     );

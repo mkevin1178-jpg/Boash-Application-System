@@ -1,0 +1,13 @@
+[
+  { "kode": "GC301", "nama": "Algoritma dan Pemrograman", "sks": 3 },
+  { "kode": "GC302", "nama": "Basis Data", "sks": 3 },
+  { "kode": "GC303", "nama": "Struktur Data", "sks": 3 },
+  { "kode": "GC304", "nama": "Jaringan Komputer", "sks": 3 },
+  { "kode": "GC305", "nama": "Sistem Operasi", "sks": 2 },
+  { "kode": "GC306", "nama": "Pemrograman Web", "sks": 3 },
+  { "kode": "GC307", "nama": "Kecerdasan Buatan", "sks": 3 },
+  { "kode": "GC308", "nama": "Keamanan Siber", "sks": 3 },
+  { "kode": "GC309", "nama": "Multimedia", "sks": 3 },
+  { "kode": "GC310", "nama": "Statistika", "sks": 2 },
+  { "kode": "GC327", "nama": "Pemrograman Mobile", "sks": 3 }
+]

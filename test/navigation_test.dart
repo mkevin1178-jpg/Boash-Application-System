@@ -52,11 +52,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('KELUAR DARI AKUN DEMO'),
+      find.text('KELUAR DARI AKUN'),
       250,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('KELUAR DARI AKUN DEMO'), findsOneWidget);
+    expect(find.text('KELUAR DARI AKUN'), findsOneWidget);
   });
 
   testWidgets('halaman profil menampilkan ringkasan akademik', (tester) async {

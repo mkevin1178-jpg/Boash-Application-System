@@ -18,7 +18,7 @@ presensi, pengumuman kampus, dan profil demo dalam satu aplikasi.
 | --- | --- |
 | **Beranda** | Sapaan mahasiswa, foto profil demo, jadwal kuliah hari ini, tugas terdekat beserta tenggat, pengumuman kampus terbaru, akses cepat ke fitur akademik |
 | **Jadwal** | Jadwal harian dan mingguan, penanda hari aktif, detail kelas (jam, mata kuliah, ruang, dosen contoh) |
-| **Akademik** | Hub ke Materi perkuliahan, Tugas (+ detail tugas), Nilai demo, Presensi demo, dan KTM digital demo |
+| **Akademik** | Hub Materi, Tugas, Nilai, Presensi (termasuk Scan QR demo), KTM, KRS, dan DHS |
 | **Pengumuman** | Daftar pengumuman kampus (kategori + tanggal), penanda belum dibaca, halaman detail pengumuman |
 | **Profil** | Profil demo, statistik contoh, menu KTM / Pengaturan / Tentang, konfirmasi logout, pembersihan sesi demo |
 
@@ -53,31 +53,21 @@ sudah tersedia sebagai hasil `flutter create`.
 
 ## Login demo
 
-Aplikasi memakai **API acak `https://randomuser.me/api/`** untuk
-mengambil satu profil contoh. Alurnya:
+Aplikasi memakai login demo lokal dengan NPM dan kata sandi minimal.
+Profil akademik selain NPM menggunakan data contoh. Alurnya:
 
 ```text
-Splash → Login → Validasi input → Autentikasi demo (API acak) → Dashboard
+Splash → Login → Validasi format NPM/kata sandi → Sesi demo → Dashboard
 ```
 
-1. Buka aplikasi. Halaman **Login** mengambil satu user acak dari
-   `randomuser.me`.
-2. Kartu **"Akun demo dari API"** menampilkan username dan password
-   contoh yang dipakai API tersebut. Password **disembunyikan secara
-   default** — tekan ikon mata untuk melihatnya.
-3. Isi kolom username & password dengan nilai tersebut, lalu tekan
-   **MASUK**.
-4. Jika API sedang lambat atau gagal, tekan **"Coba lagi"**. Sesi demo
-   tetap dapat dipakai karena kredensial contoh ditampilkan di layar.
+1. Masukkan NPM (minimal 5 digit) dan kata sandi (minimal 4 karakter).
+2. Tekan **MASUK** untuk membuat sesi demo lokal.
 
 Karakter login demo:
 
 - **Bukan** autentikasi resmi kampus. Tidak ada kredensial asli, tidak ada
   data mahasiswa nyata, dan tidak ada pencatatan ke server kampus.
-- API acak hanya menyediakan **profil contoh**; pencocokan username dan
-  password di layar login adalah **mekanisme simulasi** yang dibuat
-  eksplisit di `lib/features/auth/login_screen.dart`, bukan verifikasi
-  identitas.
+- Login hanya memeriksa format input; bukan verifikasi identitas kampus.
 - Tombol login dinonaktifkan selama proses berlangsung agar tidak terjadi
   permintaan ganda.
 - Sesi demo disimpan **di memori aplikasi** (tidak ada penyimpanan
@@ -92,12 +82,13 @@ Semua data berikut adalah data contoh dan diberi penanda visual
 
 | Fitur | Catatan |
 | --- | --- |
-| Login | Kredensial dari `randomuser.me`, bukan SIAKAD |
-| Foto profil | Diambil dari `randomuser.me`; ada avatar cadangan bila gagal dimuat |
+| Login | Sesi demo lokal berdasarkan format NPM, bukan SIAKAD |
+| Foto profil | Avatar fallback untuk sesi demo lokal |
 | Jadwal, materi, tugas, nilai, presensi, pengumuman | Hard-coded di `lib/data/demo_data.dart` |
 | Tombol kumpulkan tugas | Simulasi — tidak mengirim berkas ke mana pun |
 | Tombol simpan / bagikan KTM | Simulasi — tidak menyimpan berkas |
 | Barcode pada KTM | **Dekoratif**, bukan barcode yang dapat discan untuk verifikasi |
+| Scan QR Presensi | Validasi jadwal dan kedaluwarsa; log per NPM hanya di memori aplikasi |
 | Statistik profil (IPK, SKS, jumlah mata kuliah) | Angka contoh |
 
 Tidak ada backend baru, tidak ada integrasi SIAKAD, dan tidak ada
@@ -114,7 +105,7 @@ lib/
 ├── core/                   # LoadState, AsyncController, AsyncBuilder, format tanggal
 ├── models/                 # model data (course, assignment, announcement, ...)
 ├── data/                   # sumber data demo + repository
-├── services/auth_api.dart  # pemanggil API randomuser.me
+├── services/              # API nilai dan validasi QR presensi demo
 ├── state/                  # AppSession + AppController (ChangeNotifier)
 ├── theme/                  # token warna, spacing, radius, tipografi
 ├── widgets/                # komponen reusable
@@ -126,9 +117,8 @@ lib/
 
 ## Pengujian
 
-`flutter test` menjalankan 20 pengujian widget yang tidak bergantung
-jaringan (API acak disimulasikan lewat injeksi `AuthApi` pada
-`test/support/test_harness.dart`):
+`flutter test` menjalankan pengujian widget dan unit yang tidak bergantung
+kamera atau jaringan:
 
 | Berkas | Cakupan uji |
 | --- | --- |
@@ -137,9 +127,11 @@ jaringan (API acak disimulasikan lewat injeksi `AuthApi` pada
 | `test/academic_flow_test.dart` | Alur Akademik: tugas, materi, nilai, presensi, KTM, pengumuman |
 | `test/error_and_empty_state_test.dart` | State pemuatan, error, dan data kosong |
 | `test/date_format_test.dart` | Format tanggal Indonesia dan tenggat relatif |
+| `test/qr_attendance_service_test.dart` | Validasi payload, jadwal, kedaluwarsa, dan duplikasi |
+| `test/qr_attendance_flow_test.dart` | Scan palsu, kegagalan simpan, riwayat kosong, tile Akademik |
 
-Status verifikasi terakhir: `flutter analyze` → **No issues found!**,
-`flutter test` → **All tests passed!** (20 uji).
+Status verifikasi terbaru: `flutter analyze` → **No issues found!**;
+`flutter test` → **All tests passed!** (43 pengujian).
 
 ---
 
@@ -159,6 +151,7 @@ Status verifikasi terakhir: `flutter analyze` → **No issues found!**,
 
 - Flutter 3.47.x · Dart 3.13.x
 - `google_fonts` — font Poppins
-- `http` — pemanggilan API acak
+- `http` — pemanggilan API nilai demo
+- `mobile_scanner` — pemindaian QR dari kamera
 - Tanpa package state management; memakai `ChangeNotifier` bawaan Flutter
 - Versi aplikasi: **2.0** (prototipe PBL, data simulasi)

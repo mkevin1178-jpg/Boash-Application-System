@@ -5,9 +5,8 @@
 Dokumen ini menjelaskan alur pengguna aplikasi **Boash Student App**,
 sebuah aplikasi beta untuk proyek PBL sistem kampus. Aplikasi berfokus
 pada simulasi pengalaman mahasiswa dalam mengakses informasi akademik
-dan non-akademik. Data login boleh menggunakan API acak karena aplikasi
-ini merupakan prototipe/PBL, bukan sistem produksi yang memerlukan data
-mahasiswa asli.
+dan non-akademik. Login membentuk sesi demo lokal berdasarkan NPM; aplikasi
+ini bukan sistem produksi dan tidak memakai autentikasi kampus.
 
 ## 2. Persona dan kebutuhan pengguna
 
@@ -30,22 +29,21 @@ flowchart TD
     B --> C{Sudah ada sesi demo?}
     C -- Tidak --> D[Halaman Login]
     C -- Ya --> E[Dashboard]
-    D --> F[Isi email/username dan password demo]
+    D --> F[Isi NPM dan password demo]
     F --> G{Input valid?}
     G -- Tidak --> H[Tampilkan pesan validasi]
     H --> D
-    G -- Ya --> I[Autentikasi melalui API acak]
-    I --> J{Respons API berhasil?}
-    J -- Tidak --> K[Tampilkan error dan tombol coba lagi]
-    K --> D
-    J -- Ya --> L[Simpan sesi demo]
-    L --> E
+    G -- Ya --> I[Buat sesi demo lokal]
+    I --> E
     E --> M{Pilih kebutuhan}
     M --> N[Jadwal Kuliah]
     M --> O[Menu Akademik]
     M --> P[Pengumuman]
     M --> Q[Profil]
-    O --> R[Materi / Tugas / Nilai / Presensi / KTM]
+    O --> R[Materi / Tugas / Nilai / Presensi / Scan QR / KTM / KRS / DHS]
+    R --> QR[Scan QR Presensi demo]
+    QR --> QRV[Validasi payload, jadwal, masa berlaku, dan duplikasi]
+    QRV --> QRS[Rekap dan riwayat per NPM diperbarui di memori]
     R --> S[Lihat detail atau lakukan aksi demo]
     N --> T[Kembali ke Dashboard atau navigasi lain]
     P --> T
@@ -69,11 +67,9 @@ flowchart TD
                                       sesi              pengguna menunggu
                                                         tanpa indikator
 
-  2\. Login         Mengisi           Validasi form     Input kosong,
-                    email/username    lalu request ke   format salah,
-                    dan password demo API acak          jaringan gagal,
-                                                        API gagal, tombol
-                                                        loading
+  2\. Login         Mengisi NPM       Validasi format   Input kosong,
+                    dan password demo dan membuat sesi  NPM salah, kata
+                                      demo lokal        sandi terlalu pendek
 
   3\. Dashboard     Melihat ringkasan Jadwal, tugas     Empty state bila
                     hari ini          terdekat,         data tidak
@@ -120,8 +116,8 @@ flowchart TD
 
 Gunakan **bottom navigation dengan lima menu utama**: 1. **Beranda** ---
 ringkasan aktivitas dan shortcut. 2. **Jadwal** --- jadwal
-harian/mingguan. 3. **Akademik** --- materi, tugas, nilai, presensi, dan
-KTM. 4. **Pengumuman** --- informasi kampus. 5. **Profil** --- profil
+harian/mingguan. 3. **Akademik** --- materi, tugas, nilai, presensi,
+Scan QR, KTM, KRS, dan DHS. 4. **Pengumuman** --- informasi kampus. 5. **Profil** --- profil
 demo, pengaturan, bantuan, dan logout.
 
 Hindari menaruh semua fitur di bottom navigation. Fitur yang masih satu
@@ -129,14 +125,21 @@ konteks sebaiknya dikelompokkan di halaman Akademik.
 
 ## 6. Alur alternatif dan error state
 
+### Scan QR presensi demo
+
+- Mahasiswa membuka **Akademik → Presensi → Scan QR**, tile **Scan QR**,
+  atau pintasan Scan QR di Akses Cepat Beranda.
+- Izin kamera ditolak menampilkan `ErrorState` dengan petunjuk Pengaturan;
+  masukan kode manual tersedia khusus demo.
+- QR invalid, kedaluwarsa, di luar jadwal, dan duplikat menampilkan alasan
+  melalui bottom sheet tanpa menambah log.
+- Status **HADIR** hanya muncul setelah repository berhasil mencatat log.
+  Rekap dan riwayat tersimpan per NPM di memori aplikasi.
+
 ### Login
 
 -   Field kosong: tampilkan validasi langsung di bawah field.
--   API lambat: tampilkan loading dan nonaktifkan tombol login selama
-    request berlangsung.
--   API tidak tersedia: tampilkan pesan ramah, tombol **Coba Lagi**, dan
-    jangan mengunci pengguna di layar loading.
--   Kredensial demo tidak cocok dengan mekanisme API: tampilkan petunjuk
+-   NPM tidak valid atau kata sandi terlalu pendek: tampilkan petunjuk
     sesuai mekanisme demo yang memang diimplementasikan. Jangan
     menampilkan password rahasia di UI.
 
@@ -204,9 +207,8 @@ konteks sebaiknya dikelompokkan di halaman Akademik.
 
 ## 9. Batasan PBL
 
-Aplikasi ini adalah **beta/prototipe PBL**. API acak dapat dipakai untuk
-simulasi login atau pengisian profil, sesuai implementasi yang tersedia.
-Jangan menyatakan autentikasi tersebut sebagai autentikasi kampus resmi.
+Aplikasi ini adalah **beta/prototipe PBL**. Login hanya membentuk sesi demo
+lokal dan bukan autentikasi kampus.
 Fitur seperti pengumpulan tugas, nilai, presensi, dan verifikasi KTM
 boleh memakai data mock selama status simulasi dinyatakan dengan jelas.
 
@@ -221,7 +223,7 @@ sudah berjalan.
 | 2. Login demo | `lib/features/auth/login_screen.dart` + `lib/services/auth_api.dart` | Selesai |
 | 3. Dashboard | `lib/features/dashboard/dashboard_screen.dart` | Selesai |
 | 4. Jadwal | `lib/features/schedule/schedule_screen.dart` | Selesai |
-| 5. Akademik | `lib/features/academic/academic_screen.dart` | Selesai |
+| 5. Akademik dan QR demo | `academic_screen.dart`, `attendance_screen.dart`, `qr_scanner_screen.dart` | Selesai di kode; skenario perangkat tertunda karena perangkat terkunci |
 | 6. Detail tugas | `lib/features/academic/assignment_detail_screen.dart` | Selesai |
 | 7. Pengumuman | `lib/features/announcements/announcements_screen.dart` + `announcement_detail_screen.dart` | Selesai |
 | 8. Profil | `lib/features/profile/profile_screen.dart` + `settings_screen.dart` | Selesai |
@@ -229,12 +231,12 @@ sudah berjalan.
 
 Catatan tambahan:
 
--   Alur sesi ditangani satu titik di `AppRoot`: setelah `loadDemoUser()`
-    selesai, `ListenableBuilder` memilih `LoginScreen` atau `MainShell`
+-   Alur sesi ditangani satu titik di `AppRoot`: `ListenableBuilder`
+    memilih `LoginScreen` atau `MainShell`
     sehingga tidak ada `Navigator.pushReplacement` manual.
 -   Navigasi utama: 5 tab (`Beranda`, `Jadwal`, `Akademik`, `Pengumuman`,
     `Profil`) memakai `IndexedStack` agar state tiap tab terjaga.
 -   Setiap layar data memakai pola state yang sama: loading → success,
     dengan cabang error (tombol **Coba lagi**) dan empty state.
 -   Pengujian otomatis ada di `test/` (login, navigasi, alur akademik,
-    error/empty state, format tanggal).
+    QR Attendance, error/empty state, format tanggal).

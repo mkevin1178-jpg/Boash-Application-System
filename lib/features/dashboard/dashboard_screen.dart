@@ -18,6 +18,7 @@ import '../../widgets/section_title.dart';
 import '../../widgets/status_badge.dart';
 import '../academic/academic_screen.dart';
 import '../academic/assignment_detail_screen.dart';
+import '../academic/qr_scanner_screen.dart';
 import '../announcements/announcement_detail_screen.dart';
 import '../announcements/announcements_screen.dart';
 import '../schedule/schedule_screen.dart';
@@ -135,6 +136,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _openQrScanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => QrScannerScreen(
+          controller: widget.controller,
+          repository: widget.repository,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = widget.controller.session;
@@ -209,11 +221,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontSize: 13,
                     color: AppColors.onPrimarySoft,
                   ),
-                ),
-                const SizedBox(height: 10),
-                const DemoNote(
-                  text: 'Data simulasi - bukan data kampus resmi',
-                  compact: true,
                 ),
               ],
             ),
@@ -441,6 +448,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.fact_check_outlined,
                 label: 'Presensi',
                 onTap: _openAcademic,
+              ),
+              MenuIconTile(
+                icon: Icons.qr_code_scanner,
+                label: 'Scan QR',
+                onTap: _openQrScanner,
               ),
               MenuIconTile(
                 icon: Icons.badge_outlined,

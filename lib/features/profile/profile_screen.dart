@@ -29,10 +29,9 @@ class ProfileScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Keluar dari akun demo?'),
+        title: const Text('Keluar dari Akun?'),
         content: const Text(
-          'Sesi demo akan dihapus dari aplikasi dan Anda kembali ke '
-          'halaman login. Data contoh di dalam aplikasi tetap tersedia.',
+          'Apakah Anda yakin ingin keluar dari akun ini?',
         ),
         actions: [
           TextButton(
@@ -70,20 +69,11 @@ class ProfileScreen extends StatelessWidget {
             _identityCard(session),
             const SizedBox(height: AppSpacing.lg),
             _menuCard(context),
-            const SizedBox(height: AppSpacing.lg),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-              child: DemoNotice(
-                text:
-                    'Seluruh data pada halaman ini adalah data contoh. '
-                    'Aplikasi tidak terhubung dengan sistem akademik kampus.',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.xxl),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
               child: AppButton(
-                label: 'KELUAR DARI AKUN DEMO',
+                label: 'KELUAR DARI AKUN',
                 icon: Icons.logout,
                 variant: AppButtonVariant.danger,
                 onPressed: () => _confirmLogout(context),
@@ -119,7 +109,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            session?.fullName ?? 'Mahasiswa Demo',
+            session?.fullName ?? 'Mahasiswa',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 20,
@@ -138,9 +128,23 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          const DemoNote(
-            text: 'Akun demo - profil contoh dari API acak',
-            compact: true,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(AppSpacing.md),
+            ),
+            child: const Text(
+              'Mahasiswa Aktif',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onPrimary,
+              ),
+            ),
           ),
         ],
       ),
@@ -244,7 +248,7 @@ class ProfileScreen extends StatelessWidget {
               context,
               icon: Icons.badge_outlined,
               title: 'Kartu Tanda Mahasiswa',
-              subtitle: 'Lihat KTM demo',
+              subtitle: 'Lihat Kartu Tanda Mahasiswa',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => KtmScreen(controller: controller),
@@ -256,7 +260,7 @@ class ProfileScreen extends StatelessWidget {
               context,
               icon: Icons.settings_outlined,
               title: 'Pengaturan',
-              subtitle: 'Informasi aplikasi dan mode demo',
+              subtitle: 'Informasi dan preferensi aplikasi',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => SettingsScreen(controller: controller),

@@ -82,20 +82,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         _buildFilters(assignments),
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            AppSpacing.pageH,
-                            AppSpacing.md,
-                            AppSpacing.pageH,
-                            AppSpacing.md,
-                          ),
-                          child: DemoNote(
-                            text:
-                                'Tugas dan tenggat di bawah adalah data '
-                                'contoh untuk prototipe PBL.',
-                            compact: true,
-                          ),
-                        ),
+                        const SizedBox(height: AppSpacing.sm),
                         if (filtered.isEmpty)
                           const Padding(
                             padding: EdgeInsets.symmetric(

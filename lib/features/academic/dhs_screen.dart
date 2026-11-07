@@ -59,7 +59,7 @@ class _DhsScreenState extends State<DhsScreen> {
   Widget build(BuildContext context) {
     final session = widget.controller.session;
     final nim = session?.nim ?? '-';
-    final name = session?.fullName ?? 'Mahasiswa Demo';
+    final name = session?.fullName ?? 'Mahasiswa';
     final prodi = session?.programStudi ?? '-';
     final faculty = session?.faculty ?? '-';
     final semester = session?.semester ?? '-';
@@ -79,7 +79,7 @@ class _DhsScreenState extends State<DhsScreen> {
             tooltip: 'Unduh DHS',
             onPressed: () => showAppSnackBar(
               context,
-              'Demo: Unduh DHS tidak tersedia pada versi ini.',
+              'Fitur Unduh DHS sedang dalam pengembangan.',
             ),
           ),
         ],
@@ -102,13 +102,6 @@ class _DhsScreenState extends State<DhsScreen> {
             ),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              const DemoNotice(
-                text:
-                    'DHS ini adalah data contoh (simulasi). Nilai yang '
-                    'ditampilkan bukan nilai resmi dari sistem akademik.',
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
               // Header KHS — identitas mahasiswa
               _KhsHeader(
                 nim: nim,
@@ -226,7 +219,7 @@ class _KhsHeader extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'DAFTAR HASIL STUDI — DEMO',
+                            'DAFTAR HASIL STUDI',
                             style: TextStyle(
                               fontSize: 9,
                               letterSpacing: 1.2,
@@ -236,7 +229,6 @@ class _KhsHeader extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const DemoNote(text: 'DEMO', compact: true),
                   ],
                 ),
               ],

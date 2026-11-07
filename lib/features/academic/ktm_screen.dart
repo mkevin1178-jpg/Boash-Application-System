@@ -47,7 +47,7 @@ class _KtmScreenState extends State<KtmScreen> {
       // (share sheet / print dialog). Tidak memerlukan izin penyimpanan manual.
       await Printing.layoutPdf(
         onLayout: (_) async => pdfBytes,
-        name: 'KTM_${session?.nim ?? 'demo'}.pdf',
+        name: 'KTM_${session?.nim ?? 'prototype'}.pdf',
       );
     } catch (e) {
       if (mounted) {
@@ -67,7 +67,7 @@ class _KtmScreenState extends State<KtmScreen> {
     final doc = pw.Document();
 
     final nim = session?.nim ?? DemoData.nim;
-    final fullName = session?.fullName ?? 'Mahasiswa Demo';
+    final fullName = session?.fullName ?? 'Mahasiswa';
     final prodi = session?.programStudi ?? DemoData.programStudi;
     final faculty = session?.faculty ?? DemoData.faculty;
     final semester = session?.semester ?? DemoData.semester;
@@ -137,7 +137,7 @@ class _KtmScreenState extends State<KtmScreen> {
                         ),
                         pw.SizedBox(height: 2),
                         pw.Text(
-                          'KARTU TANDA MAHASISWA — DEMO',
+                          'KARTU TANDA MAHASISWA',
                           style: pw.TextStyle(
                             fontSize: 8,
                             letterSpacing: 2,
@@ -147,20 +147,20 @@ class _KtmScreenState extends State<KtmScreen> {
                       ],
                     ),
                   ),
-                  // Badge DEMO
+                  // Badge Status
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(
                         horizontal: 8, vertical: 4),
                     decoration: pw.BoxDecoration(
-                      color: warningBg,
+                      color: brandLight,
                       borderRadius: pw.BorderRadius.circular(4),
                     ),
                     child: pw.Text(
-                      'DEMO',
+                      'STATUS: AKTIF',
                       style: pw.TextStyle(
                         fontSize: 9,
                         fontWeight: pw.FontWeight.bold,
-                        color: warning,
+                        color: brand,
                       ),
                     ),
                   ),
@@ -202,21 +202,19 @@ class _KtmScreenState extends State<KtmScreen> {
             ),
             pw.SizedBox(height: 24),
 
-            // ── Catatan DEMO ──────────────────────────────────────────
+            // ── Pernyataan Digital ─────────────────────────────────────
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(
-                color: warningBg,
+                color: brandLight,
                 borderRadius: pw.BorderRadius.circular(8),
-                border: pw.Border.all(color: warning, width: 0.5),
               ),
               child: pw.Text(
-                'Dokumen ini adalah KTM simulasi untuk prototipe PBL. '
-                'Bukan dokumen resmi. Tidak untuk keperluan verifikasi identitas.',
+                'Kartu Tanda Mahasiswa Elektronik resmi Sivitas Akademika Boash.',
                 style: pw.TextStyle(
                   fontSize: 9,
-                  color: warning,
-                  lineSpacing: 3,
+                  color: brand,
+                  lineSpacing: 2,
                 ),
               ),
             ),
@@ -224,7 +222,7 @@ class _KtmScreenState extends State<KtmScreen> {
 
             // ── Footer ─────────────────────────────────────────────────
             pw.Text(
-              'Dicetak oleh: Boash Student App v2.0 — Data demo, bukan dokumen kampus resmi.',
+              'Dicetak secara digital oleh Boash Student App',
               style: pw.TextStyle(
                 fontSize: 8,
                 color: textSecondary,
@@ -279,8 +277,8 @@ class _KtmScreenState extends State<KtmScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.controller.session;
-    final fullName = session?.fullName ?? 'Mahasiswa Demo';
-    final initials = session?.initials ?? 'MD';
+    final fullName = session?.fullName ?? 'Mahasiswa';
+    final initials = session?.initials ?? 'M';
     final photoUrl = session?.photoUrl ?? '';
 
     return Scaffold(
@@ -300,13 +298,6 @@ class _KtmScreenState extends State<KtmScreen> {
           AppSpacing.pageBottom,
         ),
         children: [
-          const DemoNotice(
-            text:
-                'KTM demo. Barcode bersifat dekoratif dan bukan alat '
-                'verifikasi. Tombol Simpan menghasilkan file PDF yang dapat '
-                'dibuka.',
-          ),
-          const SizedBox(height: AppSpacing.lg),
           _buildCard(
             context,
             fullName: fullName,
@@ -442,7 +433,7 @@ class _KtmScreenState extends State<KtmScreen> {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'KARTU TANDA MAHASISWA - DEMO',
+                        'KARTU TANDA MAHASISWA',
                         style: TextStyle(
                           fontSize: 9,
                           letterSpacing: 2,

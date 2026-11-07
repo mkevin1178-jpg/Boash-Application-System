@@ -8,17 +8,13 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_snackbar.dart';
 
-/// Halaman login.
+/// Halaman login resmi Sivitas Akademika Boash (Prototype).
 ///
 /// Desain:
 /// - Atas: latar gradien biru dengan ikon dekoratif dan nama aplikasi.
 /// - Bawah: panel putih dengan sudut atas membulat besar, berisi form login.
 ///
-/// Login menggunakan NPM dan password.
-///
-/// **Status autentikasi:** endpoint autentikasi resmi belum tersedia.
-/// Login ini adalah **DEMO**: NPM minimal 5 digit dan password minimal
-/// 4 karakter diterima. Tidak ada verifikasi ke sistem kampus.
+/// Login menggunakan NPM dan kata sandi mahasiswa.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
@@ -42,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _npmError;
   String? _passwordError;
   bool _passwordVisible = false;
+  bool _rememberMe = true;
 
   @override
   void dispose() {
@@ -99,14 +96,24 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_passwordError != null) setState(() => _passwordError = null);
   }
 
-  void _fillDemo() {
-    _npmController.text = '12523030';
-    _passwordController.text = 'demo1234';
-    setState(() {
-      _npmError = null;
-      _passwordError = null;
-    });
-    widget.controller.clearLoginError();
+  void _showForgotPasswordDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Lupa Kata Sandi?'),
+        content: const Text(
+          'Untuk mengatur ulang kata sandi akun mahasiswa, silakan hubungi '
+          'bagian Administrasi Akademik (BAAK) atau IT Helpdesk kampus dengan '
+          'menunjukkan Kartu Tanda Mahasiswa (KTM).',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Mengerti'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -163,12 +170,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         npmError: _npmError,
                         passwordError: _passwordError,
                         passwordVisible: _passwordVisible,
+                        rememberMe: _rememberMe,
+                        onRememberMeChanged: (val) =>
+                            setState(() => _rememberMe = val ?? false),
                         onPasswordVisibilityToggle: () =>
                             setState(() => _passwordVisible = !_passwordVisible),
                         onNpmChanged: _onNpmChanged,
                         onPasswordChanged: _onPasswordChanged,
                         onSubmit: _submit,
-                        onFillDemo: _fillDemo,
+                        onForgotPassword: _showForgotPasswordDialog,
                         controller: widget.controller,
                       ),
                     ),
@@ -249,11 +259,13 @@ class _LoginForm extends StatelessWidget {
     required this.npmError,
     required this.passwordError,
     required this.passwordVisible,
+    required this.rememberMe,
+    required this.onRememberMeChanged,
     required this.onPasswordVisibilityToggle,
     required this.onNpmChanged,
     required this.onPasswordChanged,
     required this.onSubmit,
-    required this.onFillDemo,
+    required this.onForgotPassword,
     required this.controller,
   });
 
@@ -264,11 +276,13 @@ class _LoginForm extends StatelessWidget {
   final String? npmError;
   final String? passwordError;
   final bool passwordVisible;
+  final bool rememberMe;
+  final ValueChanged<bool?> onRememberMeChanged;
   final VoidCallback onPasswordVisibilityToggle;
   final ValueChanged<String> onNpmChanged;
   final ValueChanged<String> onPasswordChanged;
   final VoidCallback onSubmit;
-  final VoidCallback onFillDemo;
+  final VoidCallback onForgotPassword;
   final AppController controller;
 
   @override
@@ -286,7 +300,7 @@ class _LoginForm extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         const Text(
-          'Masukkan NPM dan password untuk melanjutkan.',
+          'Silakan masukkan NPM dan kata sandi Anda untuk melanjutkan.',
           style: TextStyle(
             fontSize: 13,
             height: 1.4,
@@ -315,8 +329,8 @@ class _LoginForm extends StatelessWidget {
         _RoundedField(
           controller: passwordController,
           focusNode: passwordFocus,
-          label: 'Password',
-          hint: 'Password Anda',
+          label: 'Kata Sandi',
+          hint: 'Masukkan kata sandi',
           icon: Icons.lock_outline,
           errorText: passwordError,
           obscureText: !passwordVisible,
@@ -334,6 +348,58 @@ class _LoginForm extends StatelessWidget {
             onPressed: onPasswordVisibilityToggle,
           ),
         ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // ── Ingat Saya & Lupa Kata Sandi ────────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: rememberMe,
+                    onChanged: onRememberMeChanged,
+                    activeColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                GestureDetector(
+                  onTap: () => onRememberMeChanged(!rememberMe),
+                  child: const Text(
+                    'Ingat saya',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: onForgotPassword,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Lupa kata sandi?',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpacing.xxl),
 
         // ── Tombol Masuk ────────────────────────────────────────────────
@@ -350,29 +416,38 @@ class _LoginForm extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: AppSpacing.lg),
-
-        // ── Tombol Isi Otomatis (demo) ───────────────────────────────────
-        OutlinedButton.icon(
-          onPressed: onFillDemo,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
-            minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.xl),
-            ),
-          ),
-          icon: const Icon(Icons.auto_fix_high, size: 16),
-          label: const Text(
-            'Isi otomatis',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ),
         const SizedBox(height: AppSpacing.xl),
 
-        // ── Label DEMO ──────────────────────────────────────────────────
-        const _DemoLabel(),
+        // ── Bantuan / Footer ───────────────────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.help_outline,
+              size: 14,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            const Text(
+              'Butuh bantuan? ',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+            ),
+            GestureDetector(
+              onTap: onForgotPassword,
+              child: const Text(
+                'Hubungi BAAK',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: AppSpacing.md),
       ],
     );
@@ -478,45 +553,6 @@ class _RoundedField extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Label penanda bahwa login ini adalah demo.
-class _DemoLabel extends StatelessWidget {
-  const _DemoLabel();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.warningBg,
-        borderRadius: BorderRadius.circular(AppSpacing.md),
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.4),
-        ),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.science_outlined, size: 15, color: AppColors.warning),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              'DEMO — Autentikasi ini bukan sistem kampus resmi. '
-              'NPM apa pun (≥5 digit) dan password (≥4 karakter) dapat masuk.',
-              style: TextStyle(
-                fontSize: 11,
-                height: 1.4,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

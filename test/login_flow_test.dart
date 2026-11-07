@@ -98,21 +98,27 @@ void main() {
       expect(controller.session?.npm, equals(demoNpm));
     });
 
-    testWidgets('menampilkan tombol isi otomatis untuk akun contoh', (
-      tester,
-    ) async {
-      final controller = await createController();
-      addTearDown(controller.dispose);
+    testWidgets(
+      'tidak menampilkan tombol isi otomatis dan form berstatus kosong',
+      (tester) async {
+        final controller = await createController();
+        addTearDown(controller.dispose);
 
-      await tester.pumpWidget(
-        wrapWithTheme(
-          LoginScreen(controller: controller, repository: fastRepository()),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          wrapWithTheme(
+            LoginScreen(controller: controller, repository: fastRepository()),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Isi otomatis'), findsOneWidget);
-    });
+        expect(find.text('Isi otomatis'), findsNothing);
+        expect(find.textContaining('DEMO'), findsNothing);
+        final npmWidget = tester.widget<TextFormField>(npmField());
+        final passwordWidget = tester.widget<TextFormField>(passwordField());
+        expect(npmWidget.controller?.text.isEmpty, isTrue);
+        expect(passwordWidget.controller?.text.isEmpty, isTrue);
+      },
+    );
   });
 
   group('AppController', () {

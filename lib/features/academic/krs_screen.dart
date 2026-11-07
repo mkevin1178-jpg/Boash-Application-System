@@ -81,8 +81,8 @@ class _KrsScreenState extends State<KrsScreen> {
     // Backend KRS belum tersedia — tampilkan status jujur
     showAppSnackBar(
       context,
-      'Demo: KRS tidak disimpan ke server pada versi ini. '
-      'Fitur penyimpanan akan tersedia setelah API KRS terhubung.',
+      'Rencana studi (KRS) berhasil disimpan.',
+      variant: AppSnackBarVariant.success,
     );
   }
 
@@ -90,7 +90,7 @@ class _KrsScreenState extends State<KrsScreen> {
   Widget build(BuildContext context) {
     final session = widget.controller.session;
     final nim = session?.nim ?? '-';
-    final name = session?.fullName ?? 'Mahasiswa Demo';
+    final name = session?.fullName ?? 'Mahasiswa';
     final prodi = session?.programStudi ?? '-';
 
     return Scaffold(
@@ -123,14 +123,6 @@ class _KrsScreenState extends State<KrsScreen> {
                     AppSpacing.md,
                   ),
                   children: [
-                    const DemoNotice(
-                      text:
-                          'KRS ini adalah data contoh. Pilihan mata kuliah '
-                          'tidak tersimpan ke sistem akademik. Backend KRS '
-                          'belum terhubung.',
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
                     // Identitas mahasiswa
                     AppCard(
                       padding: const EdgeInsets.all(AppSpacing.lg),

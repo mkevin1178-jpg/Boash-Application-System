@@ -25,7 +25,7 @@
 | Framework | Flutter 3.47.x · Dart 3.13.x |
 | Platform | Web (`flutter run -d chrome`), Android, iOS, desktop |
 | Gaya Visual | E-Learning Blue: gradien biru, kartu putih, ikon lingkaran, font Poppins |
-| Layar | Splash · Login · Beranda · Jadwal · Akademik (Materi, Tugas, Nilai, Presensi, KTM) · Pengumuman · Profil · Pengaturan |
+| Layar | Splash · Login · Beranda · Jadwal · Akademik (Materi, Tugas, Nilai, Presensi, Scan QR, KTM, KRS, DHS) · Pengumuman · Profil · Pengaturan |
 | Navigasi | `AppRoot` (splash → login/dashboard) → `MainShell` dengan `BottomNavigationBar` 5 tab |
 | State | `AsyncController` + `AsyncBuilder` (loading / success / empty / error + retry) |
 | Aturan ikon | **Semua ikon menu & daftar = 1 warna, biru dongker `#1A2B6D`** |
@@ -35,16 +35,16 @@
 
 ```text
 AppRoot (lib/main.dart)
-├── SplashScreen                → selama menyiapkan akun contoh dari API
+    ├── SplashScreen                → jeda singkat sebelum memilih login/shell
 ├── LoginScreen                 → belum login
 └── MainShell (5 tab, IndexedStack)
     ├── Beranda     DashboardScreen      (ringkasan aktivitas)
     ├── Jadwal      ScheduleScreen      (harian / mingguan)
-    ├── Akademik    AcademicScreen      (hub 5 fitur)
+    ├── Akademik    AcademicScreen      (hub 8 fitur)
     │   ├── MaterialsScreen   (filter per mata kuliah)
     │   ├── AssignmentsScreen → AssignmentDetailScreen
     │   ├── GradesScreen
-    │   ├── AttendanceScreen
+    │   ├── AttendanceScreen → QrScannerScreen (hasil di bottom sheet)
     │   └── KtmScreen
     ├── Pengumuman  AnnouncementsScreen → AnnouncementDetailScreen
     └── Profil      ProfileScreen → SettingsScreen, KtmScreen
@@ -68,7 +68,7 @@ lib/
 ├── data/
 │   ├── demo_data.dart         # SATU sumber data demo
 │   └── demo_repository.dart   # repository + latensi + simulateFailure
-├── services/auth_api.dart     # pemanggil randomuser.me
+├── services/                  # API nilai dan validasi QR presensi
 ├── state/
 │   ├── app_session.dart       # data sesi demo
 │   └── app_controller.dart    # ChangeNotifier: login/logout/sesi
@@ -169,35 +169,34 @@ Font **Poppins** (`google_fonts`), cadangan Roboto.
 | --- | --- |
 | Latar | `AppColors.primary` penuh |
 | Isi | Ikon buku putih (96, radius 28) → "BOASH" (letterSpacing 6) → "STUDENT APP" → "Versi demo - data simulasi" → spinner |
-| Durasi | ±0,9 s sambil menyiapkan akun contoh dari API |
+| Durasi | ±0,9 s sebagai transisi singkat sebelum memilih login/dashboard |
 
 ### 4.2 Login — `lib/features/auth/login_screen.dart`
 
 | Aspek | Detail |
 | --- | --- |
 | Latar | Gradien biru penuh |
-| Isi (atas → bawah) | Ikon buku → "BOASH STUDENT APP" → "Masuk ke akun Anda" → subteks demo → field Username → field Password → tombol **MASUK** → catatan autentikasi demo → kartu **"AKUN DEMO DARI API ACAK"** → "Belum punya akun? Daftar" |
-| Field | `AppTextField`: label di atas, ikon kiri, tinggi ~52, validasi inline di bawah field |
+| Isi (atas → bawah) | Header gradien dengan ikon dan nama aplikasi → panel putih berisi "Masuk ke Akun Anda", field NPM, field Password, tombol **MASUK**, tombol **Isi otomatis**, dan label demo |
+| Field | Input NPM angka dan Password dengan validasi di bawah field |
 | Password | `obscureText` + tombol mata (tampilkan/sembunyikan) |
-| Tombol **MASUK** | `AppButton` full width; menampilkan spinner dan nonaktif saat `LoginState.submitting` |
-| Kartu akun demo | Menampilkan username; **password disembunyikan** (`••••••••`) sampai tombol mata ditekan; tombol **Isi otomatis** dan **Ganti akun** |
-| API gagal | Pesan error + tombol **Coba lagi** di dalam kartu |
-| Submit | Cocokkan input dengan username/password profil contoh dari API. **Bukan** autentikasi kampus |
+| Tombol **MASUK** | Menampilkan spinner dan nonaktif saat `LoginState.submitting` |
+| Isi otomatis | Mengisi kredensial demo lokal untuk mencoba aplikasi |
+| Submit | Memvalidasi NPM minimal 5 digit dan password minimal 4 karakter. Membuat sesi demo lokal; **bukan** autentikasi kampus |
 
 ### 4.3 Beranda — `lib/features/dashboard/dashboard_screen.dart`
 
 Urutan konten (paling penting di atas lipatan layar):
 
 1. **Header biru** (radius bawah 24): sapaan sesuai jam ("Selamat pagi, Budi"),
-   subjudul program studi, badge **Data simulasi**, avatar (foto API dengan
-   fallback inisial).
+   subjudul program studi, badge **Data simulasi**, avatar dengan fallback
+   inisial.
 2. **Jadwal Hari Ini** — kartu sesi (jam, mata kuliah, ruang, dosen) +
    tombol "Lihat semua"; **empty state** bila tidak ada sesi.
 3. **Tugas Terdekat** — 3 tugas dengan badge tenggat relatif
    ("Hari ini 23:00", "2 hari lagi"); warna merah bila < 48 jam.
 4. **Pengumuman Terbaru** — 3 pengumuman (kategori, tanggal, ringkasan).
-5. **Akses Cepat** — grid 4 kolom: Jadwal, Akademik, Materi, Tugas, Nilai,
-   Presensi, KTM, Pengumuman.
+5. **Akses Cepat** — grid 4 kolom termasuk Jadwal, Akademik, Materi, Tugas,
+   Nilai, Presensi, Scan QR, KTM, dan Pengumuman.
 
 ### 4.4 Jadwal — `lib/features/schedule/schedule_screen.dart`
 
@@ -214,7 +213,8 @@ Urutan konten (paling penting di atas lipatan layar):
 
 **`academic_screen.dart`** — hub fitur:
 
-- Grid 3 kolom (5 menu): Materi, Tugas, Nilai, Presensi, KTM.
+- Grid 3 kolom (8 menu): Materi, Tugas, Nilai, Presensi, Scan QR, KTM, KRS,
+  dan DHS. Scan QR membuka scanner langsung.
 - Catatan demo di bawah grid.
 - Daftar mata kuliah semester berjalan (kode, nama, dosen, SKS) → diklik
   membuka materi mata kuliah tersebut.
@@ -236,7 +236,14 @@ lulus) + kartu nilai per mata kuliah (Tugas 40 %, UTS 40 %, UAS 60 % dari
 sisa bobot) dan grade huruf A–E.
 
 **`attendance_screen.dart`** — rekap per mata kuliah: persentase kehadiran,
-progress bar, serta jumlah hadir/sakit/izin/tanpa keterangan.
+progress bar, serta jumlah hadir/sakit/izin/tanpa keterangan. Tombol **Scan QR
+Presensi** membuka kamera; bagian **Riwayat scan QR** menampilkan log demo per
+NPM. Log QR dihitung sebagai pertemuan tambahan sesuai asumsi demo.
+
+**`qr_scanner_screen.dart`** — scanner `mobile_scanner` dengan kode manual
+demo opsional, validasi payload terstruktur, hasil pada bottom sheet, dan
+`ErrorState` saat kamera/izin tidak tersedia. **`qr_scan_result_sheet.dart`**
+menampilkan status dengan teks, ikon, warna, dan detail log bila sukses.
 
 **`ktm_screen.dart`** — kartu KTM digital contoh: header gradien, avatar,
 NIM/nama/prodi/fakultas, meta semester & tahun akademik, barcode **dekoratif**,
@@ -268,7 +275,7 @@ dan tombol **BAGIKAN KTM** / **SIMPAN KTM** (snackbar demo).
 | `AppCard` | Permukaan kartu putih, radius 16, bayangan lembut, `onTap` opsional |
 | `StatusBadge` | Lencana status **berupa teks** (bukan hanya warna) |
 | `PageHeader` | Header biru seragam dengan judul, subjudul, dan slot aksi |
-| `ProfileAvatar` | Avatar foto API dengan fallback inisial |
+| `ProfileAvatar` | Avatar foto opsional dengan fallback inisial |
 | `DemoNote` / `DemoNotice` | Penanda data/aksi simulasi (badge & baris kartu) |
 | `EmptyState` / `ErrorState` / `LoadingView` | State loading/empty/error seragam |
 | `MenuIconTile` | Lingkaran ikon + label untuk grid menu |
@@ -290,13 +297,13 @@ LoadSuccess          → isi halaman (RefreshIndicator untuk muat ulang)
 
 | Layar | Sumber |
 | --- | --- |
-| Login | 1 profil acak dari `randomuser.me` |
+| Login | Sesi demo lokal berdasarkan NPM; data profil lain adalah contoh |
 | Mata kuliah | `DemoData.courses` (MK-01 … MK-08) |
 | Jadwal | `DemoData.buildSchedule()` (Senin–Jumat, acuan 5 Jan 2026) |
 | Tugas | `DemoData.buildAssignments(now)` (T-01 … T-06) |
 | Materi | `DemoData.buildMaterials(now)` (M-01 … M-06) |
 | Nilai | `DemoData.grades` (8 mata kuliah, bobot tugas 40 %) |
-| Presensi | `DemoData.attendance` (8 mata kuliah) |
+| Presensi | `DemoData.attendance` (8 mata kuliah) + log QR demo per NPM di memori |
 | Pengumuman | `DemoData.buildAnnouncements(now)` (AN-01 … AN-06) |
 
 Semua isi adalah **data contoh**; nama mata kuliah, jadwal, dan tugas selalu
@@ -306,17 +313,20 @@ konsisten antar layar karena sumbernya satu.
 
 ## 6. Acceptance criteria (v2)
 
-- [x] `flutter analyze` bersih (0 isu) dan `flutter test` lolos (20 uji).
+- [x] `flutter analyze` bersih dan `flutter test` mencakup unit serta alur QR demo.
 - [x] `main.dart` membuka splash, lalu login, lalu dashboard.
-- [x] Login memakai akun dari `randomuser.me`; salah → pesan error, cocok →
-      sesi demo tersimpan dan dashboard tampil.
+- [x] Login memvalidasi format NPM/kata sandi dan membuat sesi demo lokal.
 - [x] 5 tab (Beranda, Jadwal, Akademik, Pengumuman, Profil) pada
       `BottomNavigationBar`, state tiap tab tetap terjaga (`IndexedStack`).
 - [x] Beranda menampilkan ringkasan aktivitas, bukan katalog menu generik.
-- [x] Halaman Akademik menyediakan Materi, Tugas, Nilai, Presensi, dan KTM.
+- [x] Halaman Akademik menyediakan Materi, Tugas, Nilai, Presensi, Scan QR,
+      KTM, KRS, dan DHS.
+- [x] QR Attendance demo mencatat log per NPM di memori dan memperbarui rekap.
 - [x] **Semua ikon menu berwarna biru dongker `#1A2B6D`**.
 - [x] Setiap halaman data punya loading, error, empty state, dan retry.
 - [x] Semua data simulasi diberi penanda **Demo** di UI.
+- [x] Hasil QR ditampilkan dengan status teks + ikon; kegagalan kamera memakai
+      `ErrorState` dan kode manual tersedia untuk demo.
 - [x] Logout menghapus sesi demo dengan konfirmasi dan kembali ke login.
 - [x] KTM menampilkan barcode dekoratif yang **tidak diklaim** sebagai
       alat verifikasi.

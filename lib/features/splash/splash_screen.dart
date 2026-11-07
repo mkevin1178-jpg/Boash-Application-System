@@ -53,7 +53,7 @@ class SplashScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Versi demo - data simulasi',
+              'Sistem Informasi Akademik Mahasiswa',
               style: TextStyle(fontSize: 11, color: AppColors.onPrimarySoft),
             ),
             const SizedBox(height: 32),

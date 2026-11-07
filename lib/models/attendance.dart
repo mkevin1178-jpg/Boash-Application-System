@@ -22,6 +22,17 @@ class AttendanceRecord {
   /// Pertemuan tanpa keterangan.
   final int missed;
 
+  AttendanceRecord copyWith({int? totalMeeting, int? attended}) =>
+      AttendanceRecord(
+        courseCode: courseCode,
+        courseName: courseName,
+        totalMeeting: totalMeeting ?? this.totalMeeting,
+        attended: attended ?? this.attended,
+        sick: sick,
+        permission: permission,
+        missed: missed,
+      );
+
   /// Persentase kehadiran (0–100).
   double get percentage =>
       totalMeeting == 0 ? 0 : (attended / totalMeeting) * 100;
