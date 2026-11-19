@@ -6,10 +6,12 @@ import '../../theme/app_colors.dart';
 import '../academic/academic_screen.dart';
 import '../announcements/announcements_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../news/data/repositories/berita_repository.dart';
+import '../news/presentation/news_screen.dart';
 import '../profile/profile_screen.dart';
 import '../schedule/schedule_screen.dart';
 
-/// Shell aplikasi dengan lima menu bawah utama.
+/// Shell aplikasi dengan enam menu bawah utama.
 ///
 /// Halaman dibuat **sekali** lalu disimpan pada [IndexedStack] sehingga
 /// state tiap menu tetap terjaga dan tidak dibangun ulang saat berpindah
@@ -19,10 +21,12 @@ class MainShell extends StatefulWidget {
     super.key,
     required this.controller,
     required this.repository,
+    this.beritaRepository,
   });
 
   final AppController controller;
   final DemoRepository repository;
+  final BeritaRepository? beritaRepository;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -48,6 +52,7 @@ class _MainShellState extends State<MainShell> {
       controller: widget.controller,
       repository: widget.repository,
     ),
+    NewsScreen(repository: widget.beritaRepository),
     ProfileScreen(controller: widget.controller, repository: widget.repository),
   ];
 
@@ -102,6 +107,11 @@ class _MainShellState extends State<MainShell> {
                 icon: Icon(Icons.campaign_outlined),
                 activeIcon: Icon(Icons.campaign),
                 label: 'Pengumuman',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.article_outlined),
+                activeIcon: Icon(Icons.article),
+                label: 'Berita',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),

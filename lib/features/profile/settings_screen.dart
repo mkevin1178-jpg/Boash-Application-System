@@ -91,7 +91,7 @@ class SettingsScreen extends StatelessWidget {
                 _tile(
                   icon: Icons.info_outline,
                   title: 'Tentang aplikasi',
-                  subtitle: 'Boash Student App v2.0 (Prototype)',
+                  subtitle: 'BAS v2.0 (Prototype)',
                 ),
                 const Divider(height: 1, color: AppColors.divider),
                 _tile(
@@ -103,7 +103,7 @@ class SettingsScreen extends StatelessWidget {
                 _tile(
                   icon: Icons.storage_outlined,
                   title: 'Sumber data',
-                  subtitle: 'Data lokal dan integrasi API nilai',
+                  subtitle: 'Data lokal dan integrasi API BAS',
                 ),
               ],
             ),

@@ -7,20 +7,20 @@ import 'features/shell/main_shell.dart';
 import 'features/splash/splash_screen.dart';
 import 'state/app_controller.dart';
 
-/// Entry point aplikasi Boash Student App.
+/// Entry point aplikasi BAS.
 void main() {
-  runApp(const BoashStudentApp());
+  runApp(const BasStudentApp());
 }
 
 /// Root aplikasi: tema, dependensi bersama, dan switch halaman.
-class BoashStudentApp extends StatefulWidget {
-  const BoashStudentApp({super.key});
+class BasStudentApp extends StatefulWidget {
+  const BasStudentApp({super.key});
 
   @override
-  State<BoashStudentApp> createState() => _BoashStudentAppState();
+  State<BasStudentApp> createState() => _BasStudentAppState();
 }
 
-class _BoashStudentAppState extends State<BoashStudentApp> {
+class _BasStudentAppState extends State<BasStudentApp> {
   late final AppController _controller = AppController();
   final DemoRepository _repository = DemoRepository();
 
@@ -33,7 +33,7 @@ class _BoashStudentAppState extends State<BoashStudentApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Boash Student App',
+      title: 'BAS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(),
       home: AppRoot(controller: _controller, repository: _repository),

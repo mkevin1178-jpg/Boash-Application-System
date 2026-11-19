@@ -30,3 +30,26 @@ class LoadError<T> extends LoadState<T> {
 
   final String message;
 }
+
+/// Status permintaan POST (dipakai form kehadiran dan sertifikat).
+sealed class SubmitState {
+  const SubmitState();
+}
+
+class SubmitIdle extends SubmitState {
+  const SubmitIdle();
+}
+
+class Submitting extends SubmitState {
+  const Submitting();
+}
+
+class SubmitSuccess extends SubmitState {
+  const SubmitSuccess();
+}
+
+class SubmitFailure extends SubmitState {
+  const SubmitFailure(this.message);
+
+  final String message;
+}

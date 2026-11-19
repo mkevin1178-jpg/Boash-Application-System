@@ -1,3 +1,4 @@
+import 'package:bas/features/news/data/models/berita_model.dart';
 import 'package:bas/features/shell/main_shell.dart';
 import 'package:bas/widgets/page_header.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,11 @@ void main() {
 
     await tester.pumpWidget(
       wrapWithTheme(
-        MainShell(controller: controller, repository: fastRepository()),
+        MainShell(
+          controller: controller,
+          repository: fastRepository(),
+          beritaRepository: FakeBeritaRepository(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -59,13 +64,49 @@ void main() {
     expect(find.text('KELUAR DARI AKUN'), findsOneWidget);
   });
 
+  testWidgets('tab Berita menampilkan data dari repository', (tester) async {
+    final controller = await createLoggedInController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      wrapWithTheme(
+        MainShell(
+          controller: controller,
+          repository: fastRepository(),
+          beritaRepository: FakeBeritaRepository(
+            records: const <Berita>[
+              Berita(
+                judul: 'Berita kampus dari API',
+                isi: 'Isi berita',
+                tglPostingRaw: '2026-11-20',
+                tglPosting: null,
+                beritaDari: 'BAS',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(navItem('Berita'));
+    await tester.pumpAndSettle();
+
+    expect(headerTitle('Berita Kampus'), findsOneWidget);
+    expect(find.text('Berita kampus dari API'), findsOneWidget);
+  });
+
   testWidgets('halaman profil menampilkan ringkasan akademik', (tester) async {
     final controller = await createLoggedInController();
     addTearDown(controller.dispose);
 
     await tester.pumpWidget(
       wrapWithTheme(
-        MainShell(controller: controller, repository: fastRepository()),
+        MainShell(
+          controller: controller,
+          repository: fastRepository(),
+          beritaRepository: FakeBeritaRepository(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

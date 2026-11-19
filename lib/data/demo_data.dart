@@ -18,7 +18,7 @@ class DemoData {
   const DemoData._();
 
   // ------------------------------------------------------------- identitas
-  static const String universityName = 'Universitas Boash Indonesia';
+  static const String universityName = 'Universitas BAS Indonesia';
   static const String faculty = 'Fakultas Teknologi Sains dan Informasi';
   static const String programStudi = 'Teknologi Rekayasa Multimedia';
   static const String nim = '24903460031';

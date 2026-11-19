@@ -276,12 +276,10 @@ class ProfileScreen extends StatelessWidget {
             _menuItem(
               context,
               icon: Icons.info_outline,
-              title: 'Tentang Boash Student App',
+              title: 'Tentang BAS',
               subtitle: 'Versi 2.0 - prototipe PBL',
-              onTap: () => showAppSnackBar(
-                context,
-                'Boash Student App versi 2.0 - prototipe PBL.',
-              ),
+              onTap: () =>
+                  showAppSnackBar(context, 'BAS versi 2.0 - prototipe PBL.'),
             ),
           ],
         ),

@@ -10,6 +10,11 @@ import '../../widgets/menu_icon_tile.dart';
 import '../../widgets/page_header.dart';
 import 'assignments_screen.dart';
 import 'attendance_screen.dart';
+import '../attendance/presentation/kehadiran_screen.dart';
+import '../certificate/presentation/sertifikat_screen.dart';
+import '../finance/presentation/finance_screen.dart';
+import '../guidance/presentation/bimbingan_screen.dart';
+import '../information/presentation/informasi_screen.dart';
 import '../nilai/presentation/nilai_list_screen.dart';
 import 'dhs_screen.dart';
 import 'krs_screen.dart';
@@ -133,6 +138,45 @@ class _AcademicScreenState extends State<AcademicScreen> {
                         repository: widget.repository,
                       ),
                     ),
+                  ),
+                  MenuIconTile(
+                    icon: Icons.fact_check,
+                    label: 'Kehadiran API',
+                    onTap: () => _open(
+                      KehadiranScreen(
+                        npm: widget.controller.session?.npm ?? '',
+                      ),
+                    ),
+                  ),
+                  MenuIconTile(
+                    icon: Icons.workspace_premium_outlined,
+                    label: 'Sertifikat',
+                    onTap: () => _open(
+                      SertifikatScreen(
+                        npm: widget.controller.session?.npm ?? '',
+                      ),
+                    ),
+                  ),
+                  MenuIconTile(
+                    icon: Icons.menu_book_outlined,
+                    label: 'Bimbingan',
+                    onTap: () => _open(
+                      BimbinganScreen(
+                        npm: widget.controller.session?.npm ?? '',
+                      ),
+                    ),
+                  ),
+                  MenuIconTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: 'Finance',
+                    onTap: () => _open(
+                      FinanceScreen(npm: widget.controller.session?.npm ?? ''),
+                    ),
+                  ),
+                  MenuIconTile(
+                    icon: Icons.info_outline,
+                    label: 'Informasi',
+                    onTap: () => _open(const InformasiScreen()),
                   ),
                 ],
               ),

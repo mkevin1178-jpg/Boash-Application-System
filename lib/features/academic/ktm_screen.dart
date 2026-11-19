@@ -218,7 +218,7 @@ class _KtmScreenState extends State<KtmScreen> {
                 borderRadius: pw.BorderRadius.circular(8),
               ),
               child: pw.Text(
-                'Kartu Tanda Mahasiswa Elektronik resmi Sivitas Akademika Boash.',
+                'Kartu Tanda Mahasiswa Elektronik resmi Sivitas Akademika BAS.',
                 style: pw.TextStyle(fontSize: 9, color: brand, lineSpacing: 2),
               ),
             ),
@@ -226,7 +226,7 @@ class _KtmScreenState extends State<KtmScreen> {
 
             // ── Footer ─────────────────────────────────────────────────
             pw.Text(
-              'Dicetak secara digital oleh Boash Student App',
+              'Dicetak secara digital oleh BAS',
               style: pw.TextStyle(
                 fontSize: 8,
                 color: textSecondary,

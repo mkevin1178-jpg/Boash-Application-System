@@ -9,7 +9,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_snackbar.dart';
 import '../../widgets/demo_note.dart';
 
-/// Halaman login resmi Sivitas Akademika Boash (Prototype).
+/// Halaman login resmi Sivitas Akademika BAS (Prototype).
 ///
 /// Desain:
 /// - Atas: latar gradien biru dengan ikon dekoratif dan nama aplikasi.
@@ -206,10 +206,10 @@ class _HeaderDecor extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Ikon buku dalam lingkaran blur lembut
           Container(
             width: 84,
             height: 84,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.18),
               shape: BoxShape.circle,
@@ -218,15 +218,17 @@ class _HeaderDecor extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: const Icon(
-              Icons.menu_book,
-              size: 44,
-              color: AppColors.onPrimary,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(42),
+              child: Image.asset(
+                'assets/images/logo-boash.png',
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           const Text(
-            'BOASH STUDENT APP',
+            'BAS',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,

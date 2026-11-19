@@ -18,22 +18,25 @@ class SplashScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 96,
-              height: 96,
+              width: 108,
+              height: 108,
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: AppColors.cardShadow,
               ),
-              child: const Icon(
-                Icons.menu_book,
-                size: 52,
-                color: AppColors.primary,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/images/logo-boash.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(height: 20),
             const Text(
-              'BOASH',
+              'BAS',
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
@@ -43,7 +46,7 @@ class SplashScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'STUDENT APP',
+              'SISTEM INFORMASI AKADEMIK',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

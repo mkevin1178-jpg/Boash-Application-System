@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
@@ -20,6 +21,29 @@ class AppHttpClient {
   Future<http.Response> get(Uri uri) async {
     try {
       return await _client.get(uri).timeout(timeout);
+    } on TimeoutException catch (error) {
+      throw TimeoutFailure(cause: error);
+    } on http.ClientException catch (error) {
+      throw NetworkFailure(cause: error);
+    } on Failure {
+      rethrow;
+    } catch (error) {
+      throw NetworkFailure(cause: error);
+    }
+  }
+
+  /// POST JSON dengan header dan timeout yang sama seperti [get].
+  Future<http.Response> post(Uri uri, Object body) async {
+    try {
+      return await _client
+          .post(
+            uri,
+            headers: <String, String>{
+              'content-type': 'application/json; charset=utf-8',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(timeout);
     } on TimeoutException catch (error) {
       throw TimeoutFailure(cause: error);
     } on http.ClientException catch (error) {

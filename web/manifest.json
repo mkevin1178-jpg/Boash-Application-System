@@ -1,11 +1,11 @@
 {
-    "name": "Boash Student App",
+    "name": "BAS - Sistem Informasi Akademik Mahasiswa",
     "short_name": "BAS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Boash Student App - Sistem Informasi Akademik Mahasiswa (Prototype)",
+    "description": "BAS - Sistem Informasi Akademik Mahasiswa (Prototype)",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
