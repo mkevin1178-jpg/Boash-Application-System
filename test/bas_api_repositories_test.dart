@@ -163,6 +163,101 @@ void main() {
       },
     );
 
+    test(
+      'izin KRS tertutup bila Finance hanya berisi data pembayaran',
+      () async {
+        final mock = MockClient((request) async {
+          expect(request.url.path, '/fin_mhs_payment');
+          expect(request.url.queryParameters['npm'], _npm);
+          return _json(<Map<String, dynamic>>[
+            <String, dynamic>{
+              'npm': _npm,
+              'npayment': '4500000',
+              'cketerangan': 'Pembayaran UKT (BRI)',
+              'ntype': '0',
+              'bdeleted': '0',
+            },
+            <String, dynamic>{'npm': '99999999', 'izin_krs': 'disetujui'},
+          ]);
+        });
+        addTearDown(mock.close);
+
+        final access = await FinanceRepositoryImpl(
+          FinanceRemoteDataSourceImpl(client: AppHttpClient(client: mock)),
+        ).checkKrsAccess(_npm);
+
+        expect(access.canInputKrs, isFalse);
+        expect(access.status, KrsAccessStatus.unverifiable);
+        expect(access.message, contains('belum menyediakan'));
+      },
+    );
+
+    test(
+      'izin KRS memakai field eksplisit milik NPM yang sedang login',
+      () async {
+        final mock = MockClient((request) async {
+          return _json(<Map<String, dynamic>>[
+            <String, dynamic>{
+              'npm': '99999999',
+              'izin_krs': 'disetujui',
+              'dentry': '2026-11-20 10:00:00',
+            },
+            <String, dynamic>{
+              'npm': _npm,
+              'izin_krs': 'menunggu persetujuan',
+              'dentry': '2026-11-20 09:00:00',
+            },
+          ]);
+        });
+        addTearDown(mock.close);
+
+        final access = await FinanceRepositoryImpl(
+          FinanceRemoteDataSourceImpl(client: AppHttpClient(client: mock)),
+        ).checkKrsAccess(_npm);
+
+        expect(access.canInputKrs, isFalse);
+        expect(access.status, KrsAccessStatus.pending);
+        expect(access.message, KrsAccess.pendingMessage);
+      },
+    );
+
+    test(
+      'izin KRS disetujui hanya bila field eksplisit menyatakan disetujui',
+      () async {
+        final mock = MockClient((request) async {
+          return _json(<Map<String, dynamic>>[
+            <String, dynamic>{
+              'npm': _npm,
+              'izin_krs': 'disetujui',
+              'dentry': '2026-11-20 09:00:00',
+            },
+          ]);
+        });
+        addTearDown(mock.close);
+
+        final access = await FinanceRepositoryImpl(
+          FinanceRemoteDataSourceImpl(client: AppHttpClient(client: mock)),
+        ).checkKrsAccess(_npm);
+
+        expect(access.canInputKrs, isTrue);
+        expect(access.status, KrsAccessStatus.granted);
+      },
+    );
+
+    test('kegagalan API Finance tidak membuka akses KRS', () async {
+      final mock = MockClient(
+        (request) async => _json(<Map<String, dynamic>>[], 500),
+      );
+      addTearDown(mock.close);
+
+      final access = await FinanceRepositoryImpl(
+        FinanceRemoteDataSourceImpl(client: AppHttpClient(client: mock)),
+      ).checkKrsAccess(_npm);
+
+      expect(access.canInputKrs, isFalse);
+      expect(access.status, KrsAccessStatus.unverifiable);
+    });
+
     test('berita dan informasi diambil tanpa query NPM', () async {
       final beritaMock = MockClient((request) async {
         expect(request.url.path, '/berita');

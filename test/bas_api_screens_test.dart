@@ -70,7 +70,7 @@ Informasi _informasi() => Informasi.fromJson(<String, dynamic>{
   'kd_progstudi': 5,
   'judul_informasi': 'Informasi API BAS',
   'isi_informasi': 'Isi informasi dari server.',
-  'informasi_dari': 'Kampus',
+  'informasi_dari': 'Sofi Putri Rahayu',
 });
 
 class _FlakyBeritaRepository implements BeritaRepository {
@@ -191,7 +191,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Informasi API BAS'), findsOneWidget);
-    expect(find.textContaining('Kampus'), findsWidgets);
+    expect(find.textContaining('Sofi Putri Rahayu'), findsWidgets);
+  });
+
+  testWidgets('Informasi menyembunyikan sumber selain Sofi', (tester) async {
+    await tester.pumpWidget(
+      wrapWithTheme(
+        InformasiScreen(
+          repository: FakeInformasiRepository(
+            records: <Informasi>[
+              _informasi(),
+              Informasi.fromJson(<String, dynamic>{
+                'id_informasi': '2',
+                'judul_informasi': 'Informasi sumber lain',
+                'isi_informasi': 'Tidak boleh ditampilkan.',
+                'informasi_dari': 'Sumber Lain',
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Informasi API BAS'), findsOneWidget);
+    expect(find.text('Informasi sumber lain'), findsNothing);
   });
 
   testWidgets('Berita menampilkan error lalu retry menampilkan data', (

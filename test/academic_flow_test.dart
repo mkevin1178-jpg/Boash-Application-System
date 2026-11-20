@@ -1,5 +1,6 @@
 import 'package:bas/features/academic/academic_screen.dart';
 import 'package:bas/features/academic/assignments_screen.dart';
+import 'package:bas/features/academic/krs_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -29,6 +30,46 @@ void main() {
     expect(find.text('KRS'), findsOneWidget);
     expect(find.text('DHS'), findsOneWidget);
     expect(find.text('Scan QR'), findsOneWidget);
+  });
+
+  testWidgets('menu KRS terkunci bila izin Finance tidak terverifikasi', (
+    tester,
+  ) async {
+    final controller = await createLoggedInController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      wrapWithTheme(
+        AcademicScreen(controller: controller, repository: fastRepository()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('KRS'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Akses pengisian KRS belum diberikan'),
+      findsOneWidget,
+    );
+    expect(find.text('Kartu Rencana Studi'), findsNothing);
+  });
+
+  testWidgets('halaman KRS langsung tetap terkunci tanpa izin Finance', (
+    tester,
+  ) async {
+    final controller = await createLoggedInController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(wrapWithTheme(KrsScreen(controller: controller)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Akses KRS terkunci'), findsOneWidget);
+    expect(
+      find.textContaining('Akses pengisian KRS belum diberikan'),
+      findsOneWidget,
+    );
+    expect(find.text('AJUKAN KRS'), findsNothing);
   });
 
   testWidgets('daftar tugas menampilkan tugas contoh dan dapat difilter', (

@@ -65,7 +65,7 @@ class _KtmScreenState extends State<KtmScreen> {
   Future<Uint8List> _buildPdf(AppSession? session) async {
     final doc = pw.Document();
 
-    final nim = session?.nim ?? DemoData.nim;
+    final nim = session?.nim ?? '-';
     final fullName = session?.fullName ?? 'Mahasiswa';
     final prodi = session?.programStudi ?? DemoData.programStudi;
     final faculty = session?.faculty ?? DemoData.faculty;
@@ -328,7 +328,7 @@ class _KtmScreenState extends State<KtmScreen> {
                 _infoRow(
                   Icons.badge_outlined,
                   'NIM / NPM',
-                  session?.nim ?? DemoData.nim,
+                  session?.nim ?? '-',
                 ),
                 const Divider(height: 1, color: AppColors.divider),
                 _infoRow(Icons.email_outlined, 'Email', session?.email ?? '-'),
@@ -465,7 +465,7 @@ class _KtmScreenState extends State<KtmScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _cardRow('NIM / NPM', session?.nim ?? DemoData.nim),
+                      _cardRow('NIM / NPM', session?.nim ?? '-'),
                       _cardRow('Nama', fullName),
                       _cardRow(
                         'Kode Prodi',
@@ -515,7 +515,7 @@ class _KtmScreenState extends State<KtmScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'No. ${session?.nim ?? DemoData.nim}',
+                      'No. ${session?.nim ?? '-'}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

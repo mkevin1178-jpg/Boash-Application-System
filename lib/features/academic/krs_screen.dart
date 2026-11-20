@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../core/load_state.dart';
+import '../../features/finance/data/repositories/finance_repository.dart';
 import '../../shared/matkul_reference.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/demo_note.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
@@ -38,6 +41,8 @@ class KrsScreen extends StatefulWidget {
 class _KrsScreenState extends State<KrsScreen> {
   late final KrsRepository _repository;
   late final KrsController _krsController;
+  LoadState<KrsAccess> _accessState = const LoadIdle<KrsAccess>();
+  bool _krsLoadStarted = false;
 
   @override
   void initState() {
@@ -47,7 +52,8 @@ class _KrsScreenState extends State<KrsScreen> {
     _krsController = KrsController(
       repository: _repository,
       npm: widget.controller.session?.npm ?? '',
-    )..load();
+    );
+    _checkAccess();
   }
 
   @override
@@ -56,11 +62,94 @@ class _KrsScreenState extends State<KrsScreen> {
     super.dispose();
   }
 
+  Future<void> _checkAccess() async {
+    setState(() => _accessState = const LoadLoading<KrsAccess>());
+    final access = await widget.controller.loadKrsAccess(force: true);
+    if (!mounted) return;
+    setState(() {
+      _accessState = LoadSuccess<KrsAccess>(
+        access ??
+            KrsAccess.unverifiable('Pemeriksaan izin KRS masih berlangsung.'),
+      );
+    });
+    final granted = access != null && access.canInputKrs;
+    if (granted && !_krsLoadStarted) {
+      _krsLoadStarted = true;
+      await _krsController.load();
+    }
+  }
+
+  Future<void> _submitKrs() async {
+    final access = await widget.controller.loadKrsAccess(force: true);
+    if (!mounted) return;
+    if (access == null || !access.canInputKrs) {
+      showAppSnackBar(
+        context,
+        '${KrsAccess.deniedMessage} ${access?.message ?? ''}',
+        variant: AppSnackBarVariant.error,
+      );
+      return;
+    }
+    showAppSnackBar(context, 'Pengajuan KRS belum tersedia di server.');
+  }
+
   Future<void> _refresh() => _krsController.load(force: true);
 
   @override
   Widget build(BuildContext context) {
     final session = widget.controller.session;
+    final accessState = _accessState;
+
+    Widget body;
+    if (accessState is LoadIdle<KrsAccess> ||
+        accessState is LoadLoading<KrsAccess>) {
+      body = const LoadingView(message: 'Memeriksa izin KRS...');
+    } else if (accessState is LoadError<KrsAccess>) {
+      body = ErrorState(
+        title: 'Gagal memeriksa izin KRS',
+        message: accessState.message,
+        onRetry: _checkAccess,
+      );
+    } else {
+      final access = (accessState as LoadSuccess<KrsAccess>).data;
+      if (!access.canInputKrs) {
+        body = _KrsLocked(access: access, onRetry: _checkAccess);
+      } else {
+        body = Column(
+          children: [
+            Expanded(
+              child: ListenableBuilder(
+                listenable: _krsController,
+                builder: (context, _) {
+                  return switch (_krsController.state) {
+                    KrsLoading() => const LoadingView(message: 'Memuat KRS...'),
+                    KrsEmpty(:final message) => _EmptyKrs(
+                      message: message,
+                      onRefresh: _refresh,
+                    ),
+                    KrsError(:final message) => ErrorState(
+                      title: 'Gagal memuat KRS',
+                      message: message,
+                      onRetry: _refresh,
+                    ),
+                    KrsLoaded(:final groups) => _KrsContent(
+                      npm: session?.npm ?? '-',
+                      name: session?.fullName ?? 'Mahasiswa',
+                      prodi: session?.programStudi ?? '-',
+                      semester: session?.semester ?? '-',
+                      academicYear: session?.academicYear ?? '-',
+                      groups: groups,
+                      onRefresh: _refresh,
+                    ),
+                  };
+                },
+              ),
+            ),
+            _SubmissionBar(access: access, onSubmit: _submitKrs),
+          ],
+        );
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -71,37 +160,33 @@ class _KrsScreenState extends State<KrsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Column(
+      body: body,
+    );
+  }
+}
+
+/// Status izin KRS tertutup: tidak ada data KRS yang dimuat.
+class _KrsLocked extends StatelessWidget {
+  const _KrsLocked({required this.access, required this.onRetry});
+
+  final KrsAccess access;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRetry,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          Expanded(
-            child: ListenableBuilder(
-              listenable: _krsController,
-              builder: (context, _) {
-                return switch (_krsController.state) {
-                  KrsLoading() => const LoadingView(message: 'Memuat KRS...'),
-                  KrsEmpty(:final message) => _EmptyKrs(
-                    message: message,
-                    onRefresh: _refresh,
-                  ),
-                  KrsError(:final message) => ErrorState(
-                    title: 'Gagal memuat KRS',
-                    message: message,
-                    onRetry: _refresh,
-                  ),
-                  KrsLoaded(:final groups) => _KrsContent(
-                    npm: session?.npm ?? '-',
-                    name: session?.fullName ?? 'Mahasiswa',
-                    prodi: session?.programStudi ?? '-',
-                    semester: session?.semester ?? '-',
-                    academicYear: session?.academicYear ?? '-',
-                    groups: groups,
-                    onRefresh: _refresh,
-                  ),
-                };
-              },
-            ),
+          SizedBox(height: MediaQuery.sizeOf(context).height * 0.12),
+          EmptyState(
+            title: 'Akses KRS terkunci',
+            message: '${KrsAccess.deniedMessage} ${access.message}',
+            icon: Icons.lock_outline,
+            actionLabel: 'Coba lagi',
+            onAction: onRetry,
           ),
-          const _SubmissionBar(),
         ],
       ),
     );
@@ -110,7 +195,10 @@ class _KrsScreenState extends State<KrsScreen> {
 
 /// Bar bawah dengan tombol pengajuan yang belum terhubung ke server.
 class _SubmissionBar extends StatelessWidget {
-  const _SubmissionBar();
+  const _SubmissionBar({required this.access, required this.onSubmit});
+
+  final KrsAccess access;
+  final Future<void> Function() onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -134,16 +222,21 @@ class _SubmissionBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Pengajuan KRS belum terhubung ke server.',
+          Text(
+            access.canInputKrs
+                ? 'Pengajuan KRS belum terhubung ke server.'
+                : access.message,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          const AppButton(
+          AppButton(
             label: 'AJUKAN KRS',
             icon: Icons.send_outlined,
-            onPressed: null,
+            onPressed: access.canInputKrs ? onSubmit : null,
           ),
         ],
       ),

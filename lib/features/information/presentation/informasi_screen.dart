@@ -30,7 +30,7 @@ class _InformasiScreenState extends State<InformasiScreen> {
     _repository =
         widget.repository ??
         InformasiRepositoryImpl(InformasiRemoteDataSourceImpl());
-    _controller = AsyncController<List<Informasi>>(_repository.fetchAll);
+    _controller = AsyncController<List<Informasi>>(_repository.fetchFromSofi);
     _controller.load();
   }
 
@@ -56,7 +56,9 @@ class _InformasiScreenState extends State<InformasiScreen> {
         isEmpty: (items) => items.isEmpty,
         loadingMessage: 'Memuat informasi...',
         emptyTitle: 'Belum ada informasi',
-        emptyMessage: 'Informasi dari server belum tersedia.',
+        emptyMessage:
+            'Tidak ada informasi dari ${InformasiRepository.sofiSourceName} '
+            'pada server.',
         emptyIcon: Icons.info_outline,
         builder: (context, items) => RefreshIndicator(
           onRefresh: () => _controller.load(force: true),

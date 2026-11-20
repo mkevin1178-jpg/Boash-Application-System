@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/error/failure.dart';
+import '../core/load_state.dart';
+import '../features/finance/data/datasources/finance_remote_ds.dart';
+import '../features/finance/data/repositories/finance_repository.dart';
 import '../features/mahasiswa/data/datasources/mahasiswa_remote_ds.dart';
 import '../features/mahasiswa/data/repositories/mahasiswa_repository.dart';
 import 'app_session.dart';
@@ -39,18 +42,28 @@ class LoginFailure extends LoginOutcome {
 ///   HTTPS dengan Argon2id/bcrypt/scrypt.
 /// - Password tidak pernah dicetak ke log.
 class AppController extends ChangeNotifier {
-  AppController({MahasiswaRepository? mahasiswaRepository})
-    : _mahasiswaRepository =
-          mahasiswaRepository ??
-          MahasiswaRepositoryImpl(MahasiswaRemoteDataSourceImpl());
+  AppController({
+    MahasiswaRepository? mahasiswaRepository,
+    FinanceRepository? financeRepository,
+  }) : _mahasiswaRepository =
+           mahasiswaRepository ??
+           MahasiswaRepositoryImpl(MahasiswaRemoteDataSourceImpl()),
+       _financeRepository =
+           financeRepository ??
+           FinanceRepositoryImpl(FinanceRemoteDataSourceImpl());
 
   final MahasiswaRepository _mahasiswaRepository;
+  final FinanceRepository _financeRepository;
 
   bool _disposed = false;
 
   AppSession? _session;
   LoginState _loginState = LoginState.idle;
   String? _loginError;
+
+  LoadState<KrsAccess> _krsAccessState = const LoadIdle<KrsAccess>();
+  String? _krsAccessNpm;
+  bool _krsAccessLoading = false;
 
   /// Sesi yang sedang aktif, atau `null` bila belum login.
   AppSession? get session => _session;
@@ -60,6 +73,15 @@ class AppController extends ChangeNotifier {
   LoginState get loginState => _loginState;
 
   String? get loginError => _loginError;
+
+  /// Status izin KRS hanya berlaku untuk NPM pada sesi aktif.
+  /// Bila sesi berganti, status lama otomatis dianggap tidak ada.
+  LoadState<KrsAccess> get krsAccessState {
+    if (_krsAccessNpm != _session?.npm) return const LoadIdle<KrsAccess>();
+    return _krsAccessState;
+  }
+
+  bool get isKrsAccessLoading => krsAccessState is LoadLoading<KrsAccess>;
 
   // ------------------------------------------------------------------ login
 
@@ -113,6 +135,8 @@ class AppController extends ChangeNotifier {
       return const LoginFailure(message);
     }
 
+    // Izin KRS dari sesi sebelumnya tidak boleh terbawa ke NPM lain.
+    _resetKrsAccess();
     _loginState = LoginState.submitting;
     _loginError = null;
     _notify();
@@ -154,9 +178,61 @@ class AppController extends ChangeNotifier {
     return LoginFailure(message);
   }
 
+  // ------------------------------------------------------------- izin KRS
+
+  /// Memastikan status izin KRS untuk NPM pada sesi aktif.
+  ///
+  /// Mengembalikan `null` hanya bila pemeriksaan sedang berjalan. Status yang
+  /// gagal diverifikasi tetap dikembalikan sebagai [KrsAccess] tertutup.
+  Future<KrsAccess?> loadKrsAccess({bool force = false}) async {
+    final npm = _session?.npm.trim();
+    if (npm == null || npm.isEmpty) {
+      return KrsAccess.unverifiable(
+        'NPM tidak tersedia. Izin KRS tidak dapat diverifikasi.',
+      );
+    }
+
+    final current = krsAccessState;
+    if (!force && current is LoadSuccess<KrsAccess>) return current.data;
+    if (!force && _krsAccessLoading) return null;
+
+    _krsAccessNpm = npm;
+    _krsAccessLoading = true;
+    _krsAccessState = const LoadLoading<KrsAccess>();
+    _notify();
+
+    try {
+      final access = await _financeRepository.checkKrsAccess(npm);
+      // Jangan simpan hasil pemeriksaan NPM lama bila sesi sudah berganti.
+      if (_session?.npm == npm) {
+        _krsAccessState = LoadSuccess<KrsAccess>(access);
+        _notify();
+      }
+      return access;
+    } catch (error) {
+      final access = KrsAccess.unverifiable(
+        'Status izin KRS tidak dapat diverifikasi: $error',
+      );
+      if (_session?.npm == npm) {
+        _krsAccessState = LoadSuccess<KrsAccess>(access);
+        _notify();
+      }
+      return access;
+    } finally {
+      _krsAccessLoading = false;
+    }
+  }
+
+  void _resetKrsAccess() {
+    _krsAccessNpm = null;
+    _krsAccessState = const LoadIdle<KrsAccess>();
+    _krsAccessLoading = false;
+  }
+
   /// Membersihkan sesi dan mengembalikan aplikasi ke keadaan awal.
   void logout() {
     _session = null;
+    _resetKrsAccess();
     _loginState = LoginState.idle;
     _loginError = null;
     _notify();

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../data/demo_repository.dart';
+import '../../features/finance/data/repositories/finance_repository.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/app_snackbar.dart';
 import '../../widgets/demo_note.dart';
 import '../../widgets/menu_icon_tile.dart';
 import '../../widgets/page_header.dart';
@@ -42,6 +44,40 @@ class _AcademicScreenState extends State<AcademicScreen> {
   Future<void> _open(Widget screen) {
     return Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => screen));
+  }
+
+  Future<void> _openKrs() async {
+    final npm = widget.controller.session?.npm.trim();
+    if (npm == null || npm.isEmpty) {
+      showAppSnackBar(
+        context,
+        'Sesi mahasiswa tidak ditemukan. Silakan masuk kembali.',
+        variant: AppSnackBarVariant.error,
+      );
+      return;
+    }
+
+    final access = await widget.controller.loadKrsAccess();
+    if (!mounted) return;
+
+    if (access == null) {
+      showAppSnackBar(
+        context,
+        'Pemeriksaan izin KRS masih berlangsung. Coba lagi sebentar.',
+      );
+      return;
+    }
+
+    if (!access.canInputKrs) {
+      showAppSnackBar(
+        context,
+        '${KrsAccess.deniedMessage} ${access.message}',
+        variant: AppSnackBarVariant.error,
+      );
+      return;
+    }
+
+    await _open(KrsScreen(controller: widget.controller));
   }
 
   @override
@@ -120,8 +156,7 @@ class _AcademicScreenState extends State<AcademicScreen> {
                   MenuIconTile(
                     icon: Icons.edit_note_outlined,
                     label: 'KRS',
-                    onTap: () =>
-                        _open(KrsScreen(controller: widget.controller)),
+                    onTap: _openKrs,
                   ),
                   MenuIconTile(
                     icon: Icons.receipt_long_outlined,

@@ -117,8 +117,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'NIM ${session?.nim ?? DemoData.nim} - '
-            '${session?.programStudi ?? DemoData.programStudi}',
+            'NIM ${session?.nim ?? '-'} - '
+            '${session?.programStudi ?? '-'}',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 12,
@@ -191,17 +191,13 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _identityCard(AppSession? session) {
     final rows = <(IconData, String, String)>[
-      (Icons.badge_outlined, 'NIM / NPM', session?.nim ?? DemoData.nim),
+      (Icons.badge_outlined, 'NIM / NPM', session?.nim ?? '-'),
       (
         Icons.email_outlined,
         'Email',
         session?.email.isNotEmpty == true ? session!.email : '-',
       ),
-      (
-        Icons.school_outlined,
-        'Kode Prodi',
-        session?.programStudi ?? DemoData.programStudi,
-      ),
+      (Icons.school_outlined, 'Kode Prodi', session?.programStudi ?? '-'),
       (
         Icons.account_balance_outlined,
         'Fakultas',

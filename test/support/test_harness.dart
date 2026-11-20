@@ -69,11 +69,15 @@ DemoRepository fastRepository({bool simulateFailure = false}) =>
 ///
 /// [withDemoUser] tidak lagi relevan (tidak ada randomuser.me),
 /// parameter dipertahankan untuk kompatibilitas test lama.
-Future<AppController> createController({bool withDemoUser = true}) async {
+Future<AppController> createController({
+  bool withDemoUser = true,
+  FinanceRepository? financeRepository,
+}) async {
   return AppController(
     mahasiswaRepository: FakeMahasiswaRepository(
       records: const <Mahasiswa>[demoMahasiswa],
     ),
+    financeRepository: financeRepository,
   );
 }
 
@@ -146,13 +150,21 @@ class FakeBimbinganRepository implements BimbinganRepository {
 }
 
 class FakeFinanceRepository implements FinanceRepository {
-  FakeFinanceRepository({this.records = const <FinancePayment>[]});
+  FakeFinanceRepository({
+    this.records = const <FinancePayment>[],
+    this.krsAccess,
+  });
 
   final List<FinancePayment> records;
+  final KrsAccess? krsAccess;
 
   @override
   Future<List<FinancePayment>> fetchByNpm(String npm) async =>
       records.where((item) => item.npm == npm.trim()).toList();
+
+  @override
+  Future<KrsAccess> checkKrsAccess(String npm) async =>
+      krsAccess ?? KrsAccess.unverifiable(KrsAccess.missingFieldMessage);
 }
 
 class FakeBeritaRepository implements BeritaRepository {
@@ -171,4 +183,12 @@ class FakeInformasiRepository implements InformasiRepository {
 
   @override
   Future<List<Informasi>> fetchAll() async => records;
+
+  @override
+  Future<List<Informasi>> fetchFromSofi() async => records
+      .where(
+        (item) =>
+            item.informasiDari.trim() == InformasiRepository.sofiSourceName,
+      )
+      .toList(growable: false);
 }

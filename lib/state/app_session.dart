@@ -6,6 +6,7 @@ import '../features/mahasiswa/data/models/mahasiswa_model.dart';
 /// diambil dari endpoint `/mahasiswa`. Field yang tidak tersedia di API
 /// (fakultas, semester berjalan, masa berlaku KTM) masih memakai nilai demo
 /// dan diberi label "demo" agar tidak disalahartikan sebagai data resmi.
+/// Kode prodi dan tahun akademik tidak ditebak bila field API kosong.
 class AppSession {
   const AppSession({
     required this.npm,
@@ -28,14 +29,10 @@ class AppSession {
       email: mahasiswa.email,
       photoUrl: _photoUrl(mahasiswa.foto),
       faculty: demoFaculty,
-      programStudi: mahasiswa.kdProgstudi.isNotEmpty
-          ? mahasiswa.kdProgstudi
-          : demoProgramStudi,
+      programStudi: mahasiswa.kdProgstudi.trim(),
       phone: mahasiswa.handphone,
       semester: demoSemester,
-      academicYear: mahasiswa.tahunMasuk.isNotEmpty
-          ? mahasiswa.tahunMasuk
-          : demoAcademicYear,
+      academicYear: mahasiswa.tahunMasuk.trim(),
       validUntil: demoValidUntil,
     );
   }
@@ -45,9 +42,7 @@ class AppSession {
   // endpoint `/mahasiswa`. Semuanya diberi label demo di UI.
   static const String demoFaculty =
       'Fakultas Teknologi Sains dan Informasi (demo)';
-  static const String demoProgramStudi = 'Program Studi (demo)';
   static const String demoSemester = '5 (Ganjil) (demo)';
-  static const String demoAcademicYear = '2026/2027 (demo)';
   static const String demoValidUntil = '30 Jun 2027 (demo)';
 
   /// NPM yang dipakai login — digunakan sebagai query parameter ke API.

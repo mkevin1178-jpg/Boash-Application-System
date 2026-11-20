@@ -314,8 +314,9 @@ class _LoginForm extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         const DemoNotice(
           text:
-              'NPM diverifikasi ke server akademik. Kata sandi masih validasi '
-              'demo karena backend belum menyediakan autentikasi password.',
+              'Profil diambil dari API berdasarkan NPM. Kata sandi hanya '
+              'divalidasi di aplikasi; backend belum memverifikasi password, '
+              'jadi login ini bukan autentikasi yang terverifikasi server.',
         ),
         const SizedBox(height: AppSpacing.xxl),
 

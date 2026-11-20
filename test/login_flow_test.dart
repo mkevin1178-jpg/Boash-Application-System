@@ -1,4 +1,6 @@
+import 'package:bas/core/load_state.dart';
 import 'package:bas/features/auth/login_screen.dart';
+import 'package:bas/features/finance/data/repositories/finance_repository.dart';
 import 'package:bas/state/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -181,6 +183,27 @@ void main() {
 
       expect(controller.isLoggedIn, isFalse);
       expect(controller.session, isNull);
+    });
+
+    test('izin KRS tidak terbawa saat sesi berganti', () async {
+      final controller = await createController(
+        financeRepository: FakeFinanceRepository(
+          krsAccess: const KrsAccess(
+            status: KrsAccessStatus.granted,
+            message: 'Izin diberikan',
+          ),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.login(demoNpm, demoPassword);
+      expect((await controller.loadKrsAccess())?.canInputKrs, isTrue);
+
+      controller.logout();
+      expect(controller.krsAccessState, isA<LoadIdle<KrsAccess>>());
+
+      await controller.login(demoNpm, demoPassword);
+      expect(controller.krsAccessState, isA<LoadIdle<KrsAccess>>());
     });
   });
 }
